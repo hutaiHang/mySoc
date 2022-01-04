@@ -14,9 +14,11 @@ module hazard(
 	input wire[4:0] writeregE,
 	input wire regwriteE,
 	input wire memtoregE,
+	input wire div_stallE, // 除法是否阻塞流水线
 	output reg[1:0] forwardaE,forwardbE,
-	output wire flushE,
 	output wire forward_hilo_E,
+	output wire flushE,
+	output wire stallE,
 	//访存
 	input wire[4:0] writeregM,
 	input wire regwriteM,
@@ -74,7 +76,9 @@ module hazard(
 				(regwriteE & (writeregE == rsD | writeregE == rtD) 
 				|
 				memtoregM &(writeregM == rsD | writeregM == rtD));
-	assign #1 stallD = lwstallD | branchstallD;
+
+	assign #1 stallE = div_stallE;
+	assign #1 stallD = lwstallD | branchstallD | div_stallE;
 	assign #1 stallF = stallD; //取指阶段阻塞
 		
 	assign #1 flushE = stallD; //执行阶段阻塞

@@ -42,6 +42,10 @@ always @(*)
 			controls <= {8'b0000_0000,1'b1,`EXE_MULT_OP};//MULT
 			`EXE_MULTU:
 			controls <= {8'b0000_0000,1'b1,`EXE_MULTU_OP};//MULTU
+      `EXE_DIV:
+      controls <= {8'b0000_0000,1'b1,`EXE_DIV_OP}; //DIV
+      `EXE_DIVU:
+      controls <= {8'b0000_0000,1'b1,`EXE_DIVU_OP}; //DIVU
 
 		  //-----------------寄存器逻辑运算--------------------
           `EXE_AND:
@@ -103,11 +107,11 @@ always @(*)
 	`EXE_ADDI:
 	controls <= {8'b1010_0001,1'b0,`EXE_ADDI_OP};//ADDI
 	`EXE_ADDIU:
-	controls <= {8'b1010_0000,1'b0,`EXE_ADDI_OP};//ADDIU	
+	controls <= {8'b1010_0001,1'b0,`EXE_ADDI_OP};//ADDIU	
 	`EXE_SLTI:
 	controls<= {8'b1010_0001,1'b0,`EXE_SLTI_OP};//SLTI
 	`EXE_SLTIU:
-	controls<= {8'b1010_0000,1'b0,`EXE_SLTIU_OP};//SLTIU	
+	controls<= {8'b1010_0001,1'b0,`EXE_SLTIU_OP};//SLTIU	
 
       default:
         controls <= {8'b00000000,1'b0,8'b0000_0000};//illegal op

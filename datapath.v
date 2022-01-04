@@ -57,6 +57,8 @@ module datapath(
 	wire [4:0] offsetE;//偏移
 	wire [63:0] hilo_inE;
 	wire [63:0] alu_hilo_src;
+	wire div_stallE;
+	wire stallE;
 	//访存
 	wire [4:0] writeregM;
 	wire [63:0] hilo_inM;
@@ -81,9 +83,11 @@ module datapath(
 		writeregE,
 		regwriteE,
 		memtoregE,
+		div_stallE,
 		forwardaE,forwardbE,
-		flushE,
 		forward_hilo_E,
+		flushE,
+		stallE,
 		//访存
 		writeregM,
 		regwriteM,
@@ -128,21 +132,21 @@ module datapath(
 	assign offsetD = instrD[10:6];
 
 	//执行 每个信号采用D触发器进行传递 刷新信号作为clear信号
-	floprc #(32) r1E(clk,rst,flushE,srcaD,srcaE);
-	floprc #(32) r2E(clk,rst,flushE,srcbD,srcbE);
-	floprc #(32) r3E(clk,rst,flushE,signimmD,signimmE);
-	floprc #(5)  r4E(clk,rst,flushE,rsD,rsE);
-	floprc #(5)  r5E(clk,rst,flushE,rtD,rtE);
-	floprc #(5)  r6E(clk,rst,flushE,rdD,rdE);
-	floprc #(32) r7E(clk,rst,flushE,unsignimmD,unsignimmE);//无符号立即数拓展
-	floprc #(5)  r8E(clk,rst,flushE,offsetD,offsetE);//偏移量
+	flopenrc #(32) r1E(clk,rst,~stallE,flushE,srcaD,srcaE);
+	flopenrc #(32) r2E(clk,rst,~stallE,flushE,srcbD,srcbE);
+	flopenrc #(32) r3E(clk,rst,~stallE,flushE,signimmD,signimmE);
+	flopenrc #(5)  r4E(clk,rst,~stallE,flushE,rsD,rsE);
+	flopenrc #(5)  r5E(clk,rst,~stallE,flushE,rtD,rtE);
+	flopenrc #(5)  r6E(clk,rst,~stallE,flushE,rdD,rdE);
+	flopenrc #(32) r7E(clk,rst,~stallE,flushE,unsignimmD,unsignimmE);//无符号立即数拓展
+	flopenrc #(5)  r8E(clk,rst,~stallE,flushE,offsetD,offsetE);//偏移量
 	//TODO 画数据通路图---
 	mux2 #(32) choice_imm_is_signed(unsignimmE,signimmE,sign_extdE,final_imm);
 	//----
 	mux3 #(32) forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 #(32) forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
 	mux2 #(32) srcbmux(srcb2E,final_imm,alusrcE,srcb3E);
-	alu alu(srca2E,srcb3E,offsetE,alucontrolE,alu_hilo_src[63:32],alu_hilo_src[31:0],hilo_inE[63:32],hilo_inE[31:0],aluoutE);
+	alu alu(clk,rst,srca2E,srcb3E,offsetE,alucontrolE,alu_hilo_src[63:32],alu_hilo_src[31:0],hilo_inE[63:32],hilo_inE[31:0],div_stallE,aluoutE);
 	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregE);
 
 	//访存
