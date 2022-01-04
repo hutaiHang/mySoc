@@ -19,8 +19,6 @@ module controller(
          output wire memtoregM,memwriteM,regwriteM,
          //回写
          output wire memtoregW,regwriteW
-
-
        );
 
 //译码

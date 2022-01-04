@@ -2,6 +2,7 @@
 `include "defines.vh"
 module alu(
 	input wire[31:0] a,b,
+	input wire[4:0] offset,
 	input wire[7:0] op,
 	output reg[31:0] y,
 	output reg overflow,
@@ -25,6 +26,12 @@ always @(*) begin
 		`EXE_LW_OP: y<= a+b;//LW
 		`EXE_SW_OP: y<=a+b;//SW
 		`EXE_BEQ_OP: y<= a+(~b)+1;//BEQ
+		`EXE_SLL_OP: y<=(a<<offset);//SLL
+		`EXE_SRL_OP: y<=(a>>offset);//SRL
+		`EXE_SRA_OP: y<=(a>>>offset);//SRA
+		`EXE_SLLV_OP: y<=(b<<a);//SLLV
+		`EXE_SRLV_OP: y<=(b>>a);//SRLV
+		`EXE_SRAV_OP: y<=(b>>>a);//SRAV
 		default: y<=32'b0;
 	endcase
 end

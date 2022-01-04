@@ -40,6 +40,7 @@ module datapath(
 	wire [31:0] signimmD,signimmshD;
 	wire [31:0] unsignimmD;//无符号立即数拓展
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
+	wire [4:0] offsetD;//偏移
 	//执行
 	wire [1:0] forwardaE,forwardbE;
 	wire [4:0] rsE,rtE,rdE;
@@ -49,6 +50,7 @@ module datapath(
 	wire [31:0] aluoutE;
 	wire [31:0] unsignimmE;//无符号立即数拓展
 	wire [31:0] final_imm;//最终选择的立即数
+	wire [4:0] offsetE;//偏移
 	//访存
 	wire [4:0] writeregM;
 	//回写
@@ -107,6 +109,7 @@ module datapath(
 	assign rsD = instrD[25:21];
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
+	assign offsetD =instrD[10:6];
 
 	//执行 每个信号采用D触发器进行传递 刷新信号作为clear信号
 	floprc #(32) r1E(clk,rst,flushE,srcaD,srcaE);
@@ -116,13 +119,14 @@ module datapath(
 	floprc #(5) r5E(clk,rst,flushE,rtD,rtE);
 	floprc #(5) r6E(clk,rst,flushE,rdD,rdE);
 	floprc #(32) r7E(clk,rst,flushE,unsignimmD,unsignimmE);//无符号立即数拓展
+	floprc #(5) r8E(clk,rst,flushE,offsetD,offsetE);//偏移量
 	//TODO 画数据通路图---
 	mux2 #(32) choice_imm_is_signed(unsignimmE,signimmE,sign_extdE,final_imm);
 	//----
 	mux3 #(32) forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 #(32) forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
 	mux2 #(32) srcbmux(srcb2E,final_imm,alusrcE,srcb3E);
-	alu alu(srca2E,srcb3E,alucontrolE,aluoutE);
+	alu alu(srca2E,srcb3E,offsetE,alucontrolE,aluoutE);
 	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregE);
 
 	//访存
