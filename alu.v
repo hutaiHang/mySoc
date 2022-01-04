@@ -11,30 +11,28 @@ module alu(
 
 always @(*) begin
 	case (op)
-		`EXE_ADD_OP: y <= a+b; 
-		`EXE_ADDI_OP:y <=a+b;
-		`EXE_SUB_OP: y <= a+(~b)+1;//补码 = 取反码后 + 1
-		`EXE_AND_OP: y <= a&b;
-		`EXE_OR_OP:  y <= a|b;
-		`EXE_SLT_OP: y <= (a<b)?1:0;//小于则置位
-		`EXE_ANDI_OP:y <= a&b;// ANDI
-		`EXE_LUI_OP: y <= {b[15:0],16'b0};//LUI
-		`EXE_ORI_OP: y <= a|b;//ORI
-		`EXE_XORI_OP:y <= a^b;//XORI
-		`EXE_NOR_OP: y <= ~(a|b);//NOR
-		`EXE_XOR_OP: y <= a^b;//XOR
-		`EXE_LW_OP:  y <= a+b;//LW
-		`EXE_SW_OP:  y <= a+b;//SW
-		`EXE_BEQ_OP: y <= a+(~b)+1;//BEQ
-		// 移位指令
-		`EXE_SLL_OP: y <= (b<<offset);//SLL
-		`EXE_SRL_OP: y <= (b>>offset);//SRL
-		// `EXE_SRA_OP: y <=( {offset{b[31]}},b[31:offset]} >>>offset);//SRA
-		`EXE_SRA_OP: y <= $unsigned( $signed(b) >>> offset);//SRA
-		`EXE_SLLV_OP: y <= ( b << a );//SLLV
-		`EXE_SRLV_OP: y <= ( b >> a );//SRLV
-		// `EXE_SRAV_OP: y <=( {offset{b[31]}},b[31:offset]} >>>a);//SRAV
-		`EXE_SRAV_OP: y <= $unsigned( $signed(b) >>> a);//SRAV
+		`EXE_ADD_OP: y<= a+b; 
+		`EXE_ADDI_OP:y<=a+b;
+		`EXE_SUB_OP: y<= a+(~b)+1;//坖坝+1
+		`EXE_AND_OP: y<= a&b;
+		`EXE_OR_OP:  y<= a|b;
+		`EXE_SLT_OP: y<= (a<b)?1:0;//尝于则置�?
+		`EXE_ANDI_OP: y<= a&b;// ANDI
+		`EXE_LUI_OP:y<= {b[15:0],16'b0};//LUI
+		`EXE_ORI_OP:y<= a|b;//ORI
+		`EXE_XORI_OP:y<=a^b;//XORI
+		`EXE_NOR_OP:y<= ~(a|b);//NOR
+		`EXE_XOR_OP: y<= a^b;//XOR
+		`EXE_LW_OP: y<= a+b;//LW
+		`EXE_SW_OP: y<=a+b;//SW
+		`EXE_BEQ_OP: y<= a+(~b)+1;//BEQ
+		//????
+		`EXE_SLL_OP: y<=(b<<offset);//SLL
+		`EXE_SRL_OP: y<=(b>>offset);//SRL
+		`EXE_SRA_OP: y<=$unsigned(( ($signed(b)) >>> offset));//SRA {offset{b[31]}},b[31:offset]}
+		`EXE_SLLV_OP: y<=(b<<a);//SLLV
+		`EXE_SRLV_OP: y<=(b>>a);//SRLV
+		`EXE_SRAV_OP: y<=$unsigned(( ($signed(b)) >>> a));//SRAV
 		default: y<=32'b0;
 	endcase
 end
