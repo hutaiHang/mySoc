@@ -15,20 +15,29 @@ module alu(
 	output reg [31:0] lo_output,
 	// Old
 	output reg[31:0] y,
-	output reg overflow,
+	output reg overflow,//TODO 溢出信号暂未处理
 	output wire zero
     );
+
+wire[31:0] s,bout;
+wire subfunc;
+assign subfunc=op==`EXE_SUB_OP|op==`EXE_SUBU_OP|op==`EXE_SLT_OP|op==`EXE_SLTI_OP|op==`EXE_SLTU_OP|op==`EXE_SLTIU_OP;
+assign bout = subfunc ? ~b : b;
+assign s = a + bout + subfunc;
 
 always @(*) begin
 	hi_output <= hi_input;
 	lo_output <= lo_input;
 	case (op)
-		`EXE_ADD_OP: y<= a+b; 
-		`EXE_ADDI_OP:y<=a+b;
-		`EXE_SUB_OP: y<= a+(~b)+1;//坖坝+1
+		//----------算数运算指令
+		`EXE_ADD_OP,`EXE_ADDU_OP,`EXE_ADDI_OP,`EXE_ADDIU_OP:y <= s;
+		`EXE_SUB_OP,`EXE_SUBU_OP:y <= s;
+		//----------比较指令
+		`EXE_SLT_OP,`EXE_SLTI_OP:y <= (a[31]&~b[31])?1:
+											s[31]&~(~a[31]&b[31]);
+		`EXE_SLTU_OP,`EXE_SLTIU_OP:y <=a<b;
 		`EXE_AND_OP: y<= a&b;
 		`EXE_OR_OP:  y<= a|b;
-		`EXE_SLT_OP: y<= (a<b)?1:0;//尝于则置�?
 		`EXE_ANDI_OP: y<= a&b;// ANDI
 		`EXE_LUI_OP:y<= {b[15:0],16'b0};//LUI
 		`EXE_ORI_OP:y<= a|b;//ORI
@@ -57,37 +66,11 @@ end
 // 溢出判断
 always @(*) begin
 	case (op)
-		`EXE_ADD_OP:overflow <= a[31] & b[31] & ~y[31] |
-						~a[31] & ~b[31] & y[31];
-		`EXE_SUB_OP:overflow <= ~a[31] & b[31] & y[31] |
-						a[31] & ~b[31] & ~y[31];
+		`EXE_ADD_OP,`EXE_ADDI_OP:overflow <= a[31] & b[31] & ~s[31] |
+						~a[31] & ~b[31] & s[31];
+		`EXE_SUB_OP:overflow <= ~a[31] & b[31] & s[31] |
+						a[31] & ~b[31] & ~s[31];
 		default : overflow <= 1'b0;
 	endcase	
 end
-
-///////-----------------------------------------------------------------
-	// wire[31:0] s,bout;
-	// assign bout = op[2] ? ~b : b; // 凝法
-	// assign s = a + bout + op[2];
-	// always @(*) begin
-	// 	case (op[1:0])
-	// 		2'b00: y <= a & bout;
-	// 		2'b01: y <= a | bout;
-	// 		2'b10: y <= s;
-	// 		2'b11: y <= s[31];
-	// 		default : y <= 32'b0;
-	// 	endcase	
-	// end
-	// assign zero = (y == 32'b0);
-
-	// always @(*) begin
-	// 	case (op[2:1])
-	// 		2'b01:overflow <= a[31] & b[31] & ~s[31] |
-	// 						~a[31] & ~b[31] & s[31];
-	// 		2'b11:overflow <= ~a[31] & b[31] & s[31] |
-	// 						a[31] & ~b[31] & ~s[31];
-	// 		default : overflow <= 1'b0;
-	// 	endcase	
-	// end
-///////-----------------------------------------------------------------
 endmodule

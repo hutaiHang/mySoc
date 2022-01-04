@@ -25,21 +25,30 @@ always @(*)
     case (op)
       6'b000000://指令前6位，R-type再需要根据低6位缺点aluop
         case (funct)
+		//----------------寄存器算数运算---------------
           `EXE_ADD:
             controls <= {8'b1100_0000,1'b0,`EXE_ADD_OP};//ADD
           `EXE_SUB:
             controls <= {8'b1100_0000,1'b0,`EXE_SUB_OP};//SUB
+          `EXE_SLT:
+            controls <= {8'b1100_0000,1'b0,`EXE_SLT_OP};//SLT
+			`EXE_SLTU:
+			controls<={8'b1100_0000,1'b0,`EXE_SLTU_OP};//SLTU
+		   `EXE_ADDU:
+			controls <= {8'b1100_0000,1'b0,`EXE_ADDU_OP};//ADDU
+			`EXE_SUBU:
+			controls <= {8'b1100_0000,1'b0,`EXE_SUBU_OP};//SUBU
+
+		  //-----------------寄存器逻辑运算--------------------
           `EXE_AND:
             controls <= {8'b1100_0000,1'b0,`EXE_AND_OP};//AND
           `EXE_OR:
             controls <= {8'b1100_0000,1'b0,`EXE_OR_OP};//OR
-          `EXE_SLT:
-            controls <= {8'b1100_0000,1'b0,`EXE_SLT_OP};//SLT
           `EXE_NOR:
             controls <= {8'b1100_0000,1'b0,`EXE_NOR_OP};//NOR
           `EXE_XOR:
             controls <= {8'b1100_0000,1'b0,`EXE_XOR_OP};//XOR
-          //-----------移位运算
+          //-----------移位运算----------------
           //   regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,aluop
           `EXE_SLL:
             controls <= {8'b1100_0000,1'b0,`EXE_SLL_OP};//SLL
@@ -53,7 +62,7 @@ always @(*)
             controls <={8'b1100_0000,1'b0,`EXE_SRLV_OP};//SRLV
           `EXE_SRAV:
             controls <={8'b1100_0000,1'b0,`EXE_SRAV_OP};//SRAV
-          // -------- HILO寄存器------------
+          // --------数据移动指令------------
           `EXE_MTHI:
             controls <= {8'b0000_0000,1'b1,`EXE_MTHI_OP};//MTHI
           `EXE_MTLO:
@@ -77,7 +86,7 @@ always @(*)
       `EXE_J:
         controls <= {8'b0000_0011,1'b0,`EXE_J_OP};//J
       // 52条新指令
-      //-----------逻辑运算
+      //-----------立即数逻辑运算--------------
       `EXE_ANDI:
         controls <= {8'b1010_0000,1'b0,`EXE_ANDI_OP};//ANDI
       `EXE_LUI:
@@ -86,6 +95,16 @@ always @(*)
         controls <= {8'b1010_0000,1'b0,`EXE_ORI_OP};//ORI
       `EXE_XORI:
         controls <= {8'b1010_0000,1'b0,`EXE_XORI_OP};//XORI
+	//立即数算数运算
+	`EXE_ADDI:
+	controls <= {8'b1010_0001,1'b0,`EXE_ADDI_OP};//ADDI
+	`EXE_ADDIU:
+	controls <= {8'b1010_0000,1'b0,`EXE_ADDI_OP};//ADDIU	
+	`EXE_SLTI:
+	controls<= {8'b1010_0001,1'b0,`EXE_SLTI_OP};//SLTI
+	`EXE_SLTIU:
+	controls<= {8'b1010_0000,1'b0,`EXE_SLTIU_OP};//SLTIU	
+
       default:
         controls <= {8'b00000000,1'b0,8'b0000_0000};//illegal op
     endcase
