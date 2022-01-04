@@ -37,6 +37,20 @@ always @(*)
             controls <= {8'b1100_0000,`EXE_NOR_OP};//NOR
           `EXE_XOR:
             controls <= {8'b1100_0000,`EXE_XOR_OP};//XOR
+          //-----------移位运算
+          //   regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,aluop
+          `EXE_SLL:
+            controls <= {8'b1100_0000,`EXE_SLL_OP};//SLL
+          `EXE_SRL:
+            controls <= {8'b1100_0000,`EXE_SRL_OP};//SRL
+          `EXE_SRA:
+            controls <={8'b1100_0000,`EXE_SRA_OP};//SRA 算数右移
+          `EXE_SLLV:
+            controls <={8'b1100_0000,`EXE_SLLV_OP};//SLLV
+          `EXE_SRLV:
+            controls <={8'b1100_0000,`EXE_SRLV_OP};//SRLV
+          `EXE_SRAV:
+            controls <={8'b1100_0000,`EXE_SRAV_OP};//SRAV
           default:
             controls <= {8'b1100_0000,8'b0000_0000}; //{}运算符语法未知
         endcase
@@ -52,7 +66,7 @@ always @(*)
       `EXE_J:
         controls <= {8'b0000_0011,`EXE_J_OP};//J
       // 52条新指令
-	  //-----------逻辑运算
+      //-----------逻辑运算
       `EXE_ANDI:
         controls <= {8'b1010_0000,`EXE_ANDI_OP};//ANDI
       `EXE_LUI:
@@ -61,20 +75,6 @@ always @(*)
         controls <= {8'b1010_0000,`EXE_ORI_OP};//ORI
       `EXE_XORI:
         controls <= {8'b1010_0000,`EXE_XORI_OP};//XORI
-	  //-----------移位运算
-	//   regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,aluop
-	  `EXE_SLL:
-	  	controls <= {8'b10000100,`EXE_SLL_OP};//SLL
-	   `EXE_SRL:
-	    	controls <= {8'b10000100,`EXE_SRL_OP};//SRL
-		`EXE_SRA:
-			controls <={8'b10000100,`EXE_SRA_OP};//SRA 算数右移
-		`EXE_SLLV:
-			controls <={8'b11000100,`EXE_SLLV_OP};//SLLV
-		`EXE_SRLV:
-			controls <={8'b11000100,`EXE_SRLV_OP};//SRLV
-		`EXE_SRAV:
-			controls <={8'b11000100,`EXE_SRAV_OP};//SRAV
       default:
         controls <= {8'b00000000,8'b0000_0000};//illegal op
     endcase
@@ -88,7 +88,7 @@ endmodule
   // memwrite,	0
   // memtoreg,	0
   // jump	0
-  // sign_extd 1
+  // sign_extd 0
   //--------------------------------------------------------------------------------
   // controls <= 9'b110000010;//R-TYRE
   // 6'b100011:controls <= 9'b101001000;//LW

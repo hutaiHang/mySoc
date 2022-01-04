@@ -26,12 +26,13 @@ always @(*) begin
 		`EXE_LW_OP: y<= a+b;//LW
 		`EXE_SW_OP: y<=a+b;//SW
 		`EXE_BEQ_OP: y<= a+(~b)+1;//BEQ
-		`EXE_SLL_OP: y<=(a<<offset);//SLL
-		`EXE_SRL_OP: y<=(a>>offset);//SRL
-		`EXE_SRA_OP: y<=(a>>>offset);//SRA
+		//????
+		`EXE_SLL_OP: y<=(b<<offset);//SLL
+		`EXE_SRL_OP: y<=(b>>offset);//SRL
+		`EXE_SRA_OP: y<=$unsigned(( ($signed(b)) >>> offset));//SRA {offset{b[31]}},b[31:offset]}
 		`EXE_SLLV_OP: y<=(b<<a);//SLLV
 		`EXE_SRLV_OP: y<=(b>>a);//SRLV
-		`EXE_SRAV_OP: y<=(b>>>a);//SRAV
+		`EXE_SRAV_OP: y<=$unsigned(( ($signed(b)) >>> a));//SRAV
 		default: y<=32'b0;
 	endcase
 end
