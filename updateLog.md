@@ -1,3 +1,33 @@
+### 1月4日 23:04 更新记录
+
+错误：仿真时，寄存器堆读出的数据为未定型，这直接导致了后续指令的错误
+解决：controller中添加了新的信号，但是control的长度没有更新
+
+**controller部分**
+
+1. 新增加信号write_hiloD表示是否写hilo
+
+**maindec部分**
+
+1. 新增加write_hilo信号
+2. 添加 MTHI、MTLO、MFHI和MFLO的译码
+
+**hazard部分**
+
+1. 增加输入输出   input wire write_hiloM,  output wire forward_hilo_E,
+2.   assign forward_hilo_E = write_hiloM;
+
+**datapath部分**
+
+1. 调用hilo_reg，并增加forword_hilo_mux来选择hilo_reg的输入信号（实现数据前推功能）
+
+**hilo_reg部分**
+
+1. 新建了hilo_reg.v文件
+2. 此文件在datapath中被调用
+
+
+
 ### 1月4日 18:38 更新记录
 
 将regfile.v修改回了实验4的版本
