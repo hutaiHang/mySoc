@@ -38,6 +38,10 @@ always @(*)
 			controls <= {8'b1100_0000,1'b0,`EXE_ADDU_OP};//ADDU
 			`EXE_SUBU:
 			controls <= {8'b1100_0000,1'b0,`EXE_SUBU_OP};//SUBU
+			`EXE_MULT:
+			controls <= {8'b0000_0000,1'b1,`EXE_MULT_OP};//MULT
+			`EXE_MULTU:
+			controls <= {8'b0000_0000,1'b1,`EXE_MULTU_OP};//MULTU
 
 		  //-----------------寄存器逻辑运算--------------------
           `EXE_AND:

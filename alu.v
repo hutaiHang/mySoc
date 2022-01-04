@@ -32,6 +32,8 @@ always @(*) begin
 		//----------算数运算指令
 		`EXE_ADD_OP,`EXE_ADDU_OP,`EXE_ADDI_OP,`EXE_ADDIU_OP:y <= s;
 		`EXE_SUB_OP,`EXE_SUBU_OP:y <= s;
+		`EXE_MULT_OP: {hi_output,lo_output} <= $signed(a) * $signed(b);//结果写入HILO寄存器
+		`EXE_MULTU_OP:{hi_output,lo_output} <= {32'b0, a} * {32'b0, b};//结果写入HILO寄存器
 		//----------比较指令
 		`EXE_SLT_OP,`EXE_SLTI_OP:y <= (a[31]&~b[31])?1:
 											s[31]&~(~a[31]&b[31]);
