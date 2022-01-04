@@ -1,15 +1,27 @@
 `timescale 1ns / 1ps
 `include "defines.vh"
 module alu(
+	// input
 	input wire[31:0] a,b,
 	input wire[4:0] offset,
 	input wire[7:0] op,
+	// HILO Input
+	input wire [31:0] hi_input,
+	input wire [31:0] lo_input,
+
+	// output
+	// HILO Output
+	output reg [31:0] hi_output,
+	output reg [31:0] lo_output,
+	// Old
 	output reg[31:0] y,
 	output reg overflow,
 	output wire zero
     );
 
 always @(*) begin
+	hi_output <= hi_input;
+	lo_output <= lo_input;
 	case (op)
 		`EXE_ADD_OP: y<= a+b; 
 		`EXE_ADDI_OP:y<=a+b;
@@ -26,13 +38,18 @@ always @(*) begin
 		`EXE_LW_OP: y<= a+b;//LW
 		`EXE_SW_OP: y<=a+b;//SW
 		`EXE_BEQ_OP: y<= a+(~b)+1;//BEQ
-		//????
+		// ----移位指令----
 		`EXE_SLL_OP: y<=(b<<offset);//SLL
 		`EXE_SRL_OP: y<=(b>>offset);//SRL
 		`EXE_SRA_OP: y<=$unsigned(( ($signed(b)) >>> offset));//SRA {offset{b[31]}},b[31:offset]}
 		`EXE_SLLV_OP: y<=(b<<a);//SLLV
 		`EXE_SRLV_OP: y<=(b>>a);//SRLV
 		`EXE_SRAV_OP: y<=$unsigned(( ($signed(b)) >>> a));//SRAV
+		// --------HILO指令-------
+		`EXE_MTHI_OP: hi_output <= a;
+		`EXE_MTLO_OP: lo_output <= a;
+		`EXE_MFHI_OP: y <= hi_input;
+		`EXE_MFLO_OP: y <= lo_input;
 		default: y<=32'b0;
 	endcase
 end

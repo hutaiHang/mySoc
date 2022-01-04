@@ -16,6 +16,8 @@ module mips(
 	wire [7:0] alucontrolE;
 	wire flushE,equalD;
 	wire sign_extdE;
+	wire write_hiloM;
+	wire write_hiloW;
 
 	controller c(
 		clk,rst,
@@ -31,9 +33,9 @@ module mips(
 		sign_extdE,
 		//mem stage
 		memtoregM,memwriteM,
-		regwriteM,
+		regwriteM,write_hiloM,
 		//write back stage
-		memtoregW,regwriteW
+		memtoregW,regwriteW,write_hiloW
 		);
 	datapath dp(
 		clk,rst,
@@ -57,9 +59,12 @@ module mips(
 		regwriteM,
 		aluoutM,writedataM,
 		readdataM,
+		write_hiloM,
 		//writeback stage
 		memtoregW,
-		regwriteW
+		regwriteW,
+		// HILO
+		write_hiloW
 	    );
 	
 endmodule

@@ -9,6 +9,8 @@ module maindec(
          // output
          // 新信号
          output wire sign_extd,
+         // HILO 控制信号
+         output wire write_hilo, // 是否要写 HILO, 1代表写HILO, 0代表不写HILO
          // 旧信号
          output wire memtoreg,memwrite,
          output wire branch,alusrc,
@@ -16,67 +18,76 @@ module maindec(
          output wire jump,
          output wire[7:0] aluop
        );
-reg[15:0] controls;
-assign {regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,aluop} = controls;
+reg[16:0] controls;
+assign {regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,write_hilo,aluop} = controls;
 always @(*)
   begin
     case (op)
       6'b000000://指令前6位，R-type再需要根据低6位缺点aluop
         case (funct)
           `EXE_ADD:
-            controls <= {8'b1100_0000,`EXE_ADD_OP};//ADD
+            controls <= {8'b1100_0000,1'b0,`EXE_ADD_OP};//ADD
           `EXE_SUB:
-            controls <= {8'b1100_0000,`EXE_SUB_OP};//SUB
+            controls <= {8'b1100_0000,1'b0,`EXE_SUB_OP};//SUB
           `EXE_AND:
-            controls <= {8'b1100_0000,`EXE_AND_OP};//AND
+            controls <= {8'b1100_0000,1'b0,`EXE_AND_OP};//AND
           `EXE_OR:
-            controls <= {8'b1100_0000,`EXE_OR_OP};//OR
+            controls <= {8'b1100_0000,1'b0,`EXE_OR_OP};//OR
           `EXE_SLT:
-            controls <= {8'b1100_0000,`EXE_SLT_OP};//SLT
+            controls <= {8'b1100_0000,1'b0,`EXE_SLT_OP};//SLT
           `EXE_NOR:
-            controls <= {8'b1100_0000,`EXE_NOR_OP};//NOR
+            controls <= {8'b1100_0000,1'b0,`EXE_NOR_OP};//NOR
           `EXE_XOR:
-            controls <= {8'b1100_0000,`EXE_XOR_OP};//XOR
+            controls <= {8'b1100_0000,1'b0,`EXE_XOR_OP};//XOR
           //-----------移位运算
           //   regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,aluop
           `EXE_SLL:
-            controls <= {8'b1100_0000,`EXE_SLL_OP};//SLL
+            controls <= {8'b1100_0000,1'b0,`EXE_SLL_OP};//SLL
           `EXE_SRL:
-            controls <= {8'b1100_0000,`EXE_SRL_OP};//SRL
+            controls <= {8'b1100_0000,1'b0,`EXE_SRL_OP};//SRL
           `EXE_SRA:
-            controls <={8'b1100_0000,`EXE_SRA_OP};//SRA 算数右移
+            controls <={8'b1100_0000,1'b0,`EXE_SRA_OP};//SRA 算数右移
           `EXE_SLLV:
-            controls <={8'b1100_0000,`EXE_SLLV_OP};//SLLV
+            controls <={8'b1100_0000,1'b0,`EXE_SLLV_OP};//SLLV
           `EXE_SRLV:
-            controls <={8'b1100_0000,`EXE_SRLV_OP};//SRLV
+            controls <={8'b1100_0000,1'b0,`EXE_SRLV_OP};//SRLV
           `EXE_SRAV:
-            controls <={8'b1100_0000,`EXE_SRAV_OP};//SRAV
+            controls <={8'b1100_0000,1'b0,`EXE_SRAV_OP};//SRAV
+          // -------- HILO寄存器------------
+          `EXE_MTHI:
+            controls <= {8'b0000_0000,1'b1,`EXE_MTHI_OP};//MTHI
+          `EXE_MTLO:
+            controls <= {8'b0000_0000,1'b1,`EXE_MTLO_OP};//MTLO
+          `EXE_MFHI:
+            controls <= {8'b1100_0000,1'b0,`EXE_MFHI_OP};//MFHI
+          `EXE_MFLO:
+            controls <= {8'b1100_0000,1'b0,`EXE_MFLO_OP};//MFLO
           default:
-            controls <= {8'b1100_0000,8'b0000_0000}; //{}运算符语法未知
+            controls <= {8'b1100_0000,1'b0,8'b0000_0000}; //{}运算符语法未知
         endcase
       // 实验4指令
       `EXE_LW:
-        controls <= {8'b1010_0101,`EXE_LW_OP};//LW
+        controls <= {8'b1010_0101,1'b0,`EXE_LW_OP};//LW
       `EXE_SW:
-        controls <= {8'b0010_1001,`EXE_SW_OP};//SW
+        controls <= {8'b0010_1001,1'b0,`EXE_SW_OP};//SW
       `EXE_BEQ:
-        controls <= {8'b0001_0001,`EXE_BEQ_OP};//BEQ
+        controls <= {8'b0001_0001,1'b0,`EXE_BEQ_OP};//BEQ
       `EXE_ADDI:
-        controls <= {8'b1010_0001,`EXE_ADDI_OP};//ADDI
+        controls <= {8'b1010_0001,1'b0,`EXE_ADDI_OP};//ADDI
       `EXE_J:
-        controls <= {8'b0000_0011,`EXE_J_OP};//J
+        controls <= {8'b0000_0011,1'b0,`EXE_J_OP};//J
       // 52条新指令
       //-----------逻辑运算
       `EXE_ANDI:
-        controls <= {8'b1010_0000,`EXE_ANDI_OP};//ANDI
+        controls <= {8'b1010_0000,1'b0,`EXE_ANDI_OP};//ANDI
       `EXE_LUI:
-        controls <= {8'b1010_0000,`EXE_LUI_OP};//LUI,将 16 位立即数 imm 写入寄存器 rt 的高 16 位，寄存器 rt 的低 16 位置 0
+        controls <= {8'b1010_0000,1'b0,`EXE_LUI_OP};//LUI,将 16 位立即数 imm 写入寄存器 rt 的高 16 位，寄存器 rt 的低 16 位置 0
       `EXE_ORI:
-        controls <= {8'b1010_0000,`EXE_ORI_OP};//ORI
+        controls <= {8'b1010_0000,1'b0,`EXE_ORI_OP};//ORI
       `EXE_XORI:
-        controls <= {8'b1010_0000,`EXE_XORI_OP};//XORI
+        controls <= {8'b1010_0000,1'b0,`EXE_XORI_OP};//XORI
       default:
-        controls <= {8'b00000000,8'b0000_0000};//illegal op
+        controls <= {8'b00000000,1'b0,8'b0000_0000};//illegal op
     endcase
   end
 endmodule

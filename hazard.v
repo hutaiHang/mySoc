@@ -16,10 +16,12 @@ module hazard(
 	input wire memtoregE,
 	output reg[1:0] forwardaE,forwardbE,
 	output wire flushE,
+	output wire forward_hilo_E,
 	//访存
 	input wire[4:0] writeregM,
 	input wire regwriteM,
 	input wire memtoregM,
+	input wire write_hiloM,
 
 	//回写
 	input wire[4:0] writeregW,
@@ -27,6 +29,9 @@ module hazard(
     );
 
 	wire lwstallD,branchstallD;
+
+	// 前推信号 HILO
+	assign forward_hilo_E = write_hiloM;
 
 	//前推信号，用于branch分至比较的寄存器号确定
 	assign forwardaD = (rsD != 0 & rsD == writeregM & regwriteM);

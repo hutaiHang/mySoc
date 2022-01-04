@@ -16,9 +16,9 @@ module controller(
          // 执行阶段有符号/无符号选择信号
          output wire sign_extdE,
          //访存
-         output wire memtoregM,memwriteM,regwriteM,
+         output wire memtoregM,memwriteM,regwriteM,write_hiloM,
          //回写
-         output wire memtoregW,regwriteW
+         output wire memtoregW,regwriteW,write_hiloW
        );
 
 //译码
@@ -26,6 +26,8 @@ wire[7:0] aluopD;
 wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD;
 // 有符号/无符号选择信号
 wire sign_extdD;
+// 是否写HILO, 1代表写HILO, 0代表不写HILO
+wire write_hiloD,write_hiloE,write_hiloM,write_hiloW;
 // wire[2:0] alucontrolD;
 
 //执行
@@ -38,6 +40,7 @@ maindec md(
           // output
           // 新信号
           sign_extdD,
+          write_hiloD,
           // 旧信号
           memtoregD,memwriteD,
           branchD,alusrcD,
@@ -52,27 +55,29 @@ assign pcsrcD = branchD & equalD;
 
 //流水线D触发器，每一级用到的信号无需向下一级传递
 //译码-执行
-parameter FLOP_WIDTH = 14;
+parameter FLOP_WIDTH = 15;
 floprc #(FLOP_WIDTH) regE(
          // input
          clk,
          rst,
          flushE,
-         {memtoregD, memwriteD, alusrcD, regdstD, regwriteD, sign_extdD, aluopD},
+         {memtoregD, memwriteD, alusrcD, regdstD, regwriteD, sign_extdD, write_hiloD, aluopD},
 
          // output
-         {memtoregE, memwriteE, alusrcE, regdstE, regwriteE, sign_extdE, aluopE}
+         {memtoregE, memwriteE, alusrcE, regdstE, regwriteE, sign_extdE, write_hiloE, aluopE}
        );
+
 //执行-访存
 flopr #(FLOP_WIDTH) regM(
         clk,rst,
-        {memtoregE,memwriteE,regwriteE},
-        {memtoregM,memwriteM,regwriteM}
+        {memtoregE,memwriteE,regwriteE, write_hiloE},
+        {memtoregM,memwriteM,regwriteM, write_hiloM}
       );
 //访存-回写
+
 flopr #(FLOP_WIDTH) regW(
         clk,rst,
-        {memtoregM,regwriteM},
-        {memtoregW,regwriteW}
+        {memtoregM,regwriteM, write_hiloM},
+        {memtoregW,regwriteW, write_hiloW}
       );
 endmodule
