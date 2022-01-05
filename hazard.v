@@ -4,11 +4,12 @@
 module hazard(
 	//取指
 	output wire stallF,
+	output wire flushF,
 	//译码
 	input wire[4:0] rsD,rtD,
 	input wire branchD,
 	output wire forwardaD,forwardbD,
-	output wire stallD,
+	output wire stallD,flushD,
 	//执行
 	input wire[4:0] rsE,rtE,
 	input wire[4:0] writeregE,
@@ -24,10 +25,13 @@ module hazard(
 	input wire regwriteM,
 	input wire memtoregM,
 	input wire write_hiloM,
-
+	output wire stallM,
+	output wire flushM,
 	//回写
 	input wire[4:0] writeregW,
-	input wire regwriteW
+	input wire regwriteW,
+	output wire stallW,
+	output wire flushW
     );
 
 	wire lwstallD,branchstallD;
@@ -77,10 +81,27 @@ module hazard(
 				|
 				memtoregM &(writeregM == rsD | writeregM == rtD));
 
-	assign #1 stallE = div_stallE;
-	assign #1 stallD = lwstallD | branchstallD | div_stallE;
+	//F阶段阻塞
 	assign #1 stallF = stallD; //取指阶段阻塞
-		
-	assign #1 flushE = stallD; //执行阶段阻塞
+	//D阶段阻塞
+	assign #1 stallD = lwstallD | branchstallD | div_stallE;
+	//E阶段阻塞
+	assign #1 stallE = div_stallE;
+	//M阶段阻塞
+	assign #1 stallM = 0;//TODO M阶段阻塞
+	//W阶段阻塞
+	assign #1 stallW=0;//TODO W阶段阻塞
+
+	//F阶段刷新
+	assign #1 flushF = 0;//TODO F阶段刷新
+	//D阶段刷新
+	assign #1 flushD = flushF;//TODO D阶段刷新
+	//E阶段刷线
+	assign #1 flushE = lwstallD | branchstallD; 
+	//M阶段刷新
+	assign #1 flushM=flushF;//TODO m阶段刷新目前还没出来
+	//W阶段刷新
+	assign #1 flushW=flushF;//TODO W阶段刷新
+
 	
 endmodule

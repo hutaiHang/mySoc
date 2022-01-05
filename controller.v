@@ -5,10 +5,13 @@ module controller(
          input wire clk,rst,
          //译码
          input wire[5:0] opD,functD,
-         output wire pcsrcD,branchD,equalD,jumpD,
+         input flushD,//刷新信号
+         input stallD,//TODO D阶段阻塞信号，目前没处理
+         input equalD,
+         output wire pcsrcD,branchD,jumpD,
 
          //执行
-         input wire flushE,
+         input wire flushE,stallE,
          output wire memtoregE,alusrcE,
          output wire regdstE,regwriteE,
          output wire[7:0] aluopE,
@@ -16,8 +19,10 @@ module controller(
          // 执行阶段有符号/无符号选择信号
          output wire sign_extdE,
          //访存
+         input wire flushM,stallM,
          output wire memtoregM,memwriteM,regwriteM,write_hiloM,
          //回写
+         input wire flushW,stallW,
          output wire memtoregW,regwriteW,write_hiloW
        );
 
@@ -55,11 +60,12 @@ assign pcsrcD = branchD & equalD;
 
 //流水线D触发器，每一级用到的信号无需向下一级传递
 //译码-执行
-parameter FLOP_WIDTH = 15;
-floprc #(FLOP_WIDTH) regE(
+parameter FLOP_WIDTH = 32;
+flopenrc #(FLOP_WIDTH) regE(
          // input
          clk,
          rst,
+         ~stallE,
          flushE,
          {memtoregD, memwriteD, alusrcD, regdstD, regwriteD, sign_extdD, write_hiloD, aluopD},
 
@@ -68,15 +74,19 @@ floprc #(FLOP_WIDTH) regE(
        );
 
 //执行-访存
-flopr #(FLOP_WIDTH) regM(
+flopenrc #(FLOP_WIDTH) regM(
         clk,rst,
+        ~stallM,
+        flushM,
         {memtoregE,memwriteE,regwriteE, write_hiloE},
         {memtoregM,memwriteM,regwriteM, write_hiloM}
       );
 //访存-回写
 
-flopr #(FLOP_WIDTH) regW(
+flopenrc #(FLOP_WIDTH) regW(
         clk,rst,
+        ~stallW,
+        flushW,
         {memtoregM,regwriteM, write_hiloM},
         {memtoregW,regwriteW, write_hiloW}
       );

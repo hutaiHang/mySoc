@@ -22,6 +22,7 @@ module alu(
 	output wire zero
     );
 
+	reg [31:0] a_reg,b_reg;
 	wire[31:0] s,bout;
 	wire subfunc;
 
@@ -35,14 +36,31 @@ module alu(
 	assign bout = subfunc ? ~b : b;
 	assign s = a + bout + subfunc;
 
+	reg reg_control;
+    always@(posedge clk) begin
+		if(div_start) reg_control<=1;
+		else reg_control<=0;
+	end
+
+	always@(negedge clk)begin
+		if( (reg_control^div_start)&(div_start))begin
+			a_reg<=a;
+			b_reg<=b;
+		end
+		else begin
+			a_reg<=a_reg;
+			b_reg<=b_reg;
+		end
+		
+	end
 
 	div my_div(
 			// input
 			clk,
 			rst,
 			div_sign, // 是否是有符号除法, 1为有符号, 0为无符号
-			a, // 被除数
-			b, // 除数
+			a_reg, // 被除数
+			b_reg, // 除数
 			div_start, // 开始做除法运算, DivStart,
 			1'b0, // 是否消除出发运算, 1为消除, 0为不消除
 

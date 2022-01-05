@@ -17,22 +17,26 @@ module datapath(
 	input wire[7:0] alucontrolE,//ALU控制信号
 	input wire sign_extdE,//无符号立即数拓展
 	output wire flushE,//流水线刷新信号
-	
+	output wire stallE,
 	//访存
 	input wire memtoregM,
 	input wire regwriteM,
 	output wire[31:0] aluoutM,writedataM,
 	input wire[31:0] readdataM,
 	input wire write_hiloM,
+	output wire stallM,
+	output wire flushM,
 	//回写
 	input wire memtoregW,
 	input wire regwriteW,
 	// HILO
-	input wire write_hiloW
+	input wire write_hiloW,
+	output wire stallW,
+	output wire flushW
     );
 	
 	//取指
-	wire stallF;
+	wire stallF,flushF;
 	//FD
 	wire [31:0] pcnextFD,pcnextbrFD,pcplus4F,pcbranchD;
 	//译码
@@ -58,7 +62,7 @@ module datapath(
 	wire [63:0] hilo_inE;
 	wire [63:0] alu_hilo_src;
 	wire div_stallE;
-	wire stallE;
+	// wire stallE;
 	//访存
 	wire [4:0] writeregM;
 	wire [63:0] hilo_inM;
@@ -73,11 +77,12 @@ module datapath(
 	hazard h(
 		//取指
 		stallF,
+		flushF,
 		//译码
 		rsD,rtD,
 		branchD,
 		forwardaD,forwardbD,
-		stallD,
+		stallD,flushD,
 		//执行
 		rsE,rtE,
 		writeregE,
@@ -93,9 +98,13 @@ module datapath(
 		regwriteM,
 		memtoregM,
 		write_hiloM,
+		stallM,
+		flushM,
 		//回写
 		writeregW,
-		regwriteW
+		regwriteW,
+		stallW,
+		flushW
 		);
 
 	//下一PC值确定 先确定+4 or branch 再确定是否jump
@@ -108,15 +117,15 @@ module datapath(
 	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
 
 	//取指
-	pc #(32) pcreg(clk,rst,~stallF,pcnextFD,pcF);
+	pc #(32) pcreg(clk,rst,~stallF,pcnextFD,pcF);//TODO PC触发器修改
 	adder pcadd1(pcF,32'b100,pcplus4F);
 	
 
 	//译码 阻塞信号取反作为是能信号，控制pc不变以实现流水线暂停
-	flopenr #(32) r1D(clk,rst,~stallD,pcplus4F,pcplus4D);
+	flopenrc #(32) r1D(clk,rst,~stallD,flushD,pcplus4F,pcplus4D);
 	flopenrc #(32) r2D(clk,rst,~stallD,flushD,instrF,instrD);
 	signext se(instrD[15:0],signimmD,unsignimmD);
-	sl2 immsh(signimmD,signimmshD);
+	sl2 immsh(signimmD,signimmshD);//依偎，乘4
 	adder pcadd2(pcplus4D,signimmshD,pcbranchD);
 	mux2 #(32) forwardamux(srcaD,aluoutM,forwardaD,srca2D);
 	mux2 #(32) forwardbmux(srcbD,aluoutM,forwardbD,srcb2D);
@@ -150,16 +159,16 @@ module datapath(
 	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregE);
 
 	//访存
-	flopr #(32) r1M(clk,rst,srcb2E,writedataM);
-	flopr #(32) r2M(clk,rst,aluoutE,aluoutM);
-	flopr #(5) r3M(clk,rst,writeregE,writeregM);
-	flopr #(64) r4M_hilo(clk,rst,hilo_inE,hilo_inM);
+	flopenrc #(32) r1M(clk,rst,~stallM,flushM,srcb2E,writedataM);
+	flopenrc #(32) r2M(clk,rst,~stallM,flushM,aluoutE,aluoutM);
+	flopenrc #(5) r3M(clk,rst,~stallM,flushM,writeregE,writeregM);
+	flopenrc #(64) r4M_hilo(clk,~stallM,flushM,rst,hilo_inE,hilo_inM);
 
 	//回写
-	flopr #(32) r1W(clk,rst,aluoutM,aluoutW);
-	flopr #(32) r2W(clk,rst,readdataM,readdataW);
-	flopr #(5) r3W(clk,rst,writeregM,writeregW);
+	flopenrc #(32) r1W(clk,rst,~stallW,flushW,aluoutM,aluoutW);
+	flopenrc #(32) r2W(clk,rst,~stallW,flushW,readdataM,readdataW);
+	flopenrc #(5) r3W(clk,rst,~stallW,flushW,writeregM,writeregW);
 	mux2 #(32) resmux(aluoutW,readdataW,memtoregW,resultW);
-	flopr #(64) r4W_hilo(clk,rst,hilo_inM,hilo_inW);
+	flopenrc #(64) r4W_hilo(clk,rst,~stallW,flushW,hilo_inM,hilo_inW);
 	hilo_reg my_hilo_regW(clk,rst,write_hiloW,hilo_inW[63:32],hilo_inW[31:0],hilo_regW[63:32],hilo_regW[31:0]);
 endmodule
