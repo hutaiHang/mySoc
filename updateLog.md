@@ -1,3 +1,23 @@
+### 1月6日 2:09 更新记录
+
+主要将branch和jump位置从D阶段跳转改为M阶段跳转
+
+**datapath部分**
+
+1. 将原先D阶段的选择器和比较器注释掉
+2. 在alu中增加zero的计算
+3. 在datapath中新增zero和overflow控制信号
+4. 新增pcjumpD = {pcplus4D[31:28], instrD[25:0], 2'b00};
+5. 新增pcsrcM = branchM & zeroM;
+6. 将branch、jump、pcbranch、pcjump、pcplus4、zero和overflow推至M阶段
+
+**hazard部分**
+
+1. 新增了控制信号jump_branchM = jumpM | pcsrcM;
+2. 取代了之前的stall和flush信号的判断条件
+
+
+
 ### 1月5日 21:00 更新记录
 
 **错误：**LHU指令无法正确计算相应的地址
