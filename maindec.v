@@ -79,6 +79,12 @@ always @(*)
             controls <= {8'b1100_0000,1'b0,`EXE_MFHI_OP};//MFHI
           `EXE_MFLO:
             controls <= {8'b1100_0000,1'b0,`EXE_MFLO_OP};//MFLO
+          // ----------- 分支跳转指令 ---------
+          // `EXE_JR:
+          //   controls <= {8'b0011_0000,1'b0,`EXE_JR_OP}; // JR
+          // `EXE_JALR:
+          //   controls <= {8'b1111_0000,1'b0,`EXE_JALR}; // JALR
+
           default:
             controls <= {8'b1100_0000,1'b0,8'b0000_0000}; //
         endcase

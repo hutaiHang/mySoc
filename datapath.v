@@ -1,39 +1,39 @@
 `timescale 1ns / 1ps
 `include "defines.vh"
 module datapath(
-	input wire clk,rst,
-	//取指
-	output wire[31:0] pcF,//地址
-	input wire[31:0] instrF,//指令
-	//译码
-	input wire pcsrcD,branchD,
-	input wire jumpD,
-	output wire equalD,
-	output wire[5:0] opD,functD,
-	//执行
-	input wire memtoregE,//回写数据来自alu/存储器
-	input wire alusrcE,regdstE,//写入的寄存器序号
-	input wire regwriteE,//是否回写
-	input wire[7:0] alucontrolE,//ALU控制信号
-	input wire sign_extdE,//无符号立即数拓展
-	output wire flushE,//流水线刷新信号
-	output wire stallE,
-	//访存
-	input wire memtoregM,
-	input wire regwriteM,
-	output wire[31:0] aluoutM_addr,writedataM,
-	input wire [31:0] readdataM,
-	input wire write_hiloM,
-	output wire stallM,
-	output wire flushM,
-	output reg[3:0] mem_wenM,
-	//回写
-	input wire memtoregW,
-	input wire regwriteW,
-	// HILO
-	input wire write_hiloW,
-	output wire stallW,
-	output wire flushW
+		input wire clk,rst,
+		//取指
+		output wire[31:0] pcF,//地址
+		input wire[31:0] instrF,//指令
+		//译码
+		input wire pcsrcD,branchD,
+		input wire jumpD,
+		output wire equalD,
+		output wire[5:0] opD,functD,
+		//执行
+		input wire memtoregE,//回写数据来自alu/存储器
+		input wire alusrcE,regdstE,//写入的寄存器序号
+		input wire regwriteE,//是否回写
+		input wire[7:0] alucontrolE,//ALU控制信号
+		input wire sign_extdE,//无符号立即数拓展
+		output wire flushE,//流水线刷新信号
+		output wire stallE,
+		//访存
+		input wire memtoregM,
+		input wire regwriteM,
+		output wire[31:0] aluoutM_addr,writedataM,
+		input wire [31:0] readdataM,
+		input wire write_hiloM,
+		output wire stallM,
+		output wire flushM,
+		output reg[3:0] mem_wenM,
+		//回写
+		input wire memtoregW,
+		input wire regwriteW,
+		// HILO
+		input wire write_hiloW,
+		output wire stallW,
+		output wire flushW
     );
 	
 	//取指
@@ -50,6 +50,8 @@ module datapath(
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
 	wire [4:0] offsetD;//偏移
 	wire [63:0] hilo_inD;
+	wire [31:0] pcjumpD;
+
 	//执行
 	wire [1:0] forwardaE,forwardbE;
 	wire [4:0] rsE,rtE,rdE;
@@ -64,11 +66,27 @@ module datapath(
 	wire [63:0] alu_hilo_src;
 	wire div_stallE;
 	// wire stallE;
+	wire branchE;
+	wire zeroE;
+	wire overflowE;
+	wire [31:0] pcplus4E;
+	wire [31:0] pcbranchE;
+	wire jumpE;
+	wire [31:0] pcjumpE;
+
 	//访存
 	wire [4:0] writeregM;
 	wire [63:0] hilo_inM;
 	wire [7:0] alucontrolM;
 	wire [31:0] aluoutM;
+	wire branchM;
+	wire zeroM;
+	wire overflowM;
+	wire pcsrcM;
+	wire [31:0] pcbranchM;
+	wire jumpM;
+	wire [31:0] pcjumpM;
+
 	//回写
 	wire [4:0] writeregW;
 	wire [31:0] aluoutW,resultW;
@@ -103,6 +121,9 @@ module datapath(
 		regwriteM,
 		memtoregM,
 		write_hiloM,
+		jumpM,
+		branchM,
+		pcsrcM,
 		stallM,
 		flushM,
 		//回写
@@ -113,11 +134,11 @@ module datapath(
 		);
 
 	//下一PC值确定 先确定+4 or branch 再确定是否jump
-	mux2 #(32) pcbrmux(pcplus4F,pcbranchD,pcsrcD,pcnextbrFD);
+	mux2 #(32) pcbrmux(pcplus4F,pcbranchM,pcsrcM,pcnextbrFD);
 	mux2 #(32) pcmux(pcnextbrFD,
-		{pcplus4D[31:28],instrD[25:0],2'b00},
-		jumpD,pcnextFD);
-
+		pcjumpM,
+		jumpM,pcnextFD);
+	assign pcjumpD = {pcplus4D[31:28], instrD[25:0], 2'b00};
 	//寄存器堆，负责读入或回写数据
 	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
 
@@ -132,9 +153,11 @@ module datapath(
 	signext se(instrD[15:0],signimmD,unsignimmD);
 	sl2 immsh(signimmD,signimmshD);//依偎，乘4
 	adder pcadd2(pcplus4D,signimmshD,pcbranchD);
-	mux2 #(32) forwardamux(srcaD,aluoutM,forwardaD,srca2D);
-	mux2 #(32) forwardbmux(srcbD,aluoutM,forwardbD,srcb2D);
-	eqcmp comp(srca2D,srcb2D,equalD);
+
+	// mux2 #(32) forwardamux(srcaD,aluoutM,forwardaD,srca2D);
+	// mux2 #(32) forwardbmux(srcbD,aluoutM,forwardbD,srcb2D);
+	// eqcmp comp(srca2D,srcb2D,equalD);
+
 	// HILO 选择新的值
 	mux2 #(64) forword_hilo_mux(hilo_regW,hilo_inM,forward_hilo_E,alu_hilo_src);
 
@@ -154,13 +177,19 @@ module datapath(
 	flopenrc #(5)  r6E(clk,rst,~stallE,flushE,rdD,rdE);
 	flopenrc #(32) r7E(clk,rst,~stallE,flushE,unsignimmD,unsignimmE);//无符号立即数拓展
 	flopenrc #(5)  r8E(clk,rst,~stallE,flushE,offsetD,offsetE);//偏移量
+	flopenrc #(1)  r9E_branch(clk, rst, ~stallE, flushE, branchD, branchE);// branch
+	flopenrc #(32) r10E_pcbranch(clk, rst, ~stallE, flushE, pcbranchD, pcbranchE); // pcbranch
+	flopenrc #(1)  r11E_jump(clk, rst, ~stallE, flushE, jumpD, jumpE);// jump
+	flopenrc #(32) r12E_pcjump(clk, rst, ~stallE, flushE, pcjumpD, pcjumpE);// pcjump
+	flopenrc #(32) r13E_pcplus4(clk, rst, ~stallE, flushE, pcplus4D, pcplus4E);// pcplus4
+
 	//TODO 画数据通路图---
 	mux2 #(32) choice_imm_is_signed(unsignimmE,signimmE,sign_extdE,final_imm);
 	//----
 	mux3 #(32) forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 #(32) forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
 	mux2 #(32) srcbmux(srcb2E,final_imm,alusrcE,srcb3E);
-	alu alu(clk,rst,srca2E,srcb3E,offsetE,alucontrolE,alu_hilo_src[63:32],alu_hilo_src[31:0],hilo_inE[63:32],hilo_inE[31:0],div_stallE,aluoutE);
+	alu alu(clk,rst,srca2E,srcb3E,offsetE,alucontrolE,alu_hilo_src[63:32],alu_hilo_src[31:0],hilo_inE[63:32],hilo_inE[31:0],div_stallE,aluoutE,overflowE,zeroE);
 	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregE);
 
 	//访存
@@ -169,6 +198,16 @@ module datapath(
 	flopenrc #(5) r3M(clk,rst,~stallM,flushM,writeregE,writeregM);
 	flopenrc #(64) r4M_hilo(clk,rst,~stallM,flushM,hilo_inE,hilo_inM);
 	flopenrc #(8) r5M_aluop(clk,rst,~stallM,flushM,alucontrolE,alucontrolM);
+	flopenrc #(1) r6M_branch(clk,rst,~stallM,flushM,branchE,branchM);// branch
+	flopenrc #(1) r7M_overflow(clk,rst,~stallM,flushM,overflowE,overflowM);// overflow
+	flopenrc #(1) r8M_zero(clk,rst,~stallM,flushM,zeroE,zeroM);// zero
+	flopenrc #(32) r9M_pcbranch(clk, rst, ~stallM, flushM, pcbranchE, pcbranchM);// pcbranch
+	flopenrc #(1) r10M_jump(clk, rst, ~stallM, flushM, jumpE, jumpM);// jump
+	flopenrc #(32) r11M_pcjump(clk, rst, ~stallM, flushM, pcjumpE, pcjumpM);// pcjump
+
+
+	assign pcsrcM = branchM & zeroM;
+
 	//sw各种指令选择
 	always @(*) begin
 		case (alucontrolM)
@@ -182,6 +221,7 @@ module datapath(
 	// wire [31:0] aluoutM_addr;
 	// assign aluoutM_addr={aluoutM[31:2],2'b00};//取字地址
 	assign aluoutM_addr = aluoutM << 2;//取字地址
+	// assign aluoutM_addr = aluoutM;//取字地址
 
 	//回写
 	flopenrc #(32) r1W(clk,rst,~stallW,flushW,aluoutM,aluoutW);

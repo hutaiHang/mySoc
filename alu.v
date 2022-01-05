@@ -145,9 +145,12 @@ module alu(
 			`EXE_MTLO_OP: lo_output <= a;
 			`EXE_MFHI_OP: y <= hi_input;
 			`EXE_MFLO_OP: y <= lo_input;
+			`EXE_BEQ_OP: y <= s;
 			default: y<=32'b0;
 		endcase
 	end
+
+	assign zero = (y == 32'b0); // zero
 
 	// 溢出判断
 	always @(*) begin

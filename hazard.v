@@ -25,6 +25,9 @@ module hazard(
 	input wire regwriteM,
 	input wire memtoregM,
 	input wire write_hiloM,
+	input wire jumpM,
+	input wire branchM,
+	input wire pcsrcM,
 	output wire stallM,
 	output wire flushM,
 	//回写
@@ -35,9 +38,12 @@ module hazard(
     );
 
 	wire lwstallD,branchstallD;
+	wire jump_branchM;
 
 	// 前推信号 HILO
 	assign forward_hilo_E = write_hiloM;
+
+	assign jump_branchM = jumpM | pcsrcM;
 
 	//前推信号，用于branch分至比较的寄存器号确定
 	assign forwardaD = (rsD != 0 & rsD == writeregM & regwriteM);
@@ -82,26 +88,26 @@ module hazard(
 				memtoregM &(writeregM == rsD | writeregM == rtD));
 
 	//F阶段阻塞
-	assign #1 stallF = stallD; //取指阶段阻塞
+	assign #1 stallF = lwstallD | div_stallE; //取指阶段阻塞
 	//D阶段阻塞
-	assign #1 stallD = lwstallD | branchstallD | div_stallE;
+	assign #1 stallD = lwstallD | div_stallE;
 	//E阶段阻塞
 	assign #1 stallE = div_stallE;
 	//M阶段阻塞
 	assign #1 stallM = 0;//TODO M阶段阻塞
 	//W阶段阻塞
-	assign #1 stallW=0;//TODO W阶段阻塞
+	assign #1 stallW = 0;//TODO W阶段阻塞
 
 	//F阶段刷新
-	assign #1 flushF = 0;//TODO F阶段刷新
+	assign #1 flushF = jump_branchM;//TODO F阶段刷新
 	//D阶段刷新
-	assign #1 flushD = flushF;//TODO D阶段刷新
+	assign #1 flushD = jump_branchM;//TODO D阶段刷新
 	//E阶段刷线
-	assign #1 flushE = lwstallD | branchstallD; 
+	assign #1 flushE = lwstallD | jump_branchM; 
 	//M阶段刷新
-	assign #1 flushM=flushF;//TODO m阶段刷新目前还没出来
+	assign #1 flushM = 0;//TODO m阶段刷新目前还没出来
 	//W阶段刷新
-	assign #1 flushW=flushF;//TODO W阶段刷新
+	assign #1 flushW = 0;//TODO W阶段刷新
 
 	
 endmodule
