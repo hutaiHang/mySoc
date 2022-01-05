@@ -191,24 +191,24 @@ module datapath(
 	//取字节
 	wire [31:0]readdata_signed_byte,readdata_unsigned_byte;
 	// assign readdata_true={{24{readdataW[7]}},readdataW[7:0]};
-	assign readdata_signed_byte = aluoutM[1:0]==2'b11 ? {{24{readdataW[7]}},readdataW[7:0]} :
-							aluoutM[1:0]==2'b10 ? {{24{readdataW[15]}},readdataW[15:8]} :
-							aluoutM[1:0]==2'b01 ? {{24{readdataW[23]}},readdataW[23:16]} :
-							aluoutM[1:0]==2'b00 ? {{24{readdataW[31]}},readdataW[31:24]} : 32'b0;
+	assign readdata_signed_byte = aluoutM[1:0]==2'b00 ? {{24{readdataW[7]}},readdataW[7:0]} :
+							aluoutM[1:0]==2'b01 ? {{24{readdataW[15]}},readdataW[15:8]} :
+							aluoutM[1:0]==2'b10 ? {{24{readdataW[23]}},readdataW[23:16]} :
+							aluoutM[1:0]==2'b11 ? {{24{readdataW[31]}},readdataW[31:24]} : 32'b0;
 
-	assign readdata_unsigned_byte = aluoutM[1:0]==2'b11 ? {{24{1'b0}},readdataW[7:0]} :
-							aluoutM[1:0]==2'b10 ? {{24{1'b0}},readdataW[15:8]} :
-							aluoutM[1:0]==2'b01 ? {{24{1'b0}},readdataW[23:16]} :
-							aluoutM[1:0]==2'b00 ? {{24{1'b0}},readdataW[31:24]} : 32'b0;
+	assign readdata_unsigned_byte = aluoutM[1:0]==2'b00 ? {{24{1'b0}},readdataW[7:0]} :
+							aluoutM[1:0]==2'b01 ? {{24{1'b0}},readdataW[15:8]} :
+							aluoutM[1:0]==2'b10 ? {{24{1'b0}},readdataW[23:16]} :
+							aluoutM[1:0]==2'b11 ? {{24{1'b0}},readdataW[31:24]} : 32'b0;
 	
 	//取半字
 	wire [31:0]readdata_signed_half,readdata_unsigned_half;
 	// assign readdata_true={{24{readdataW[7]}},readdataW[7:0]};
-	assign readdata_signed_half = aluoutM[1:0]==2'b10 ? {{16{readdataW[15]}},readdataW[15:0]} :
-							aluoutM[1:0]==2'b00 ? {{16{readdataW[31]}},readdataW[31:16]} : 32'b0;
+	assign readdata_signed_half = aluoutM[1:0]==2'b00 ? {{16{readdataW[15]}},readdataW[15:0]} :
+							aluoutM[1:0]==2'b10 ? {{16{readdataW[31]}},readdataW[31:16]} : 32'b0;
 
-	assign readdata_unsigned =  aluoutM[1:0]==2'b10 ? {{16{1'b0}},readdataW[15:0]} :
-							aluoutM[1:0]==2'b00 ? {{16{1'b0}},readdataW[31:16]} : 32'b0;
+	assign readdata_unsigned =  aluoutM[1:0]==2'b00 ? {{16{1'b0}},readdataW[15:0]} :
+							aluoutM[1:0]==2'b10 ? {{16{1'b0}},readdataW[31:16]} : 32'b0;
 
 	always @(*) begin
 		case (alucontrolW)
