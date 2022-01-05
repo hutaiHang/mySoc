@@ -162,7 +162,7 @@ module datapath(
 	flopenrc #(32) r1M(clk,rst,~stallM,flushM,srcb2E,writedataM);
 	flopenrc #(32) r2M(clk,rst,~stallM,flushM,aluoutE,aluoutM);
 	flopenrc #(5) r3M(clk,rst,~stallM,flushM,writeregE,writeregM);
-	flopenrc #(64) r4M_hilo(clk,~stallM,flushM,rst,hilo_inE,hilo_inM);
+	flopenrc #(64) r4M_hilo(clk,rst,~stallM,flushM,hilo_inE,hilo_inM);
 
 	//回写
 	flopenrc #(32) r1W(clk,rst,~stallW,flushW,aluoutM,aluoutW);
