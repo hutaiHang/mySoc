@@ -130,8 +130,8 @@ module alu(
 			`EXE_XORI_OP:y<=a^b;//XORI
 			`EXE_NOR_OP:y<= ~(a|b);//NOR
 			`EXE_XOR_OP: y<= a^b;//XOR
-			`EXE_LW_OP: y<= a+b;//LW
-			`EXE_SW_OP: y<=a+b;//SW
+			`EXE_LW_OP,`EXE_LB_OP,`EXE_LBU_OP,`EXE_LH_OP,`EXE_LH_OP: y<= a+b;//存取指令
+			`EXE_SW_OP,`EXE_SH_OP,`EXE_SB_OP: y<=a+b;//SW
 			`EXE_BEQ_OP: y<= a+(~b)+1;//BEQ
 			// ----移位指令----
 			`EXE_SLL_OP: y<=(b<<offset);//SLL

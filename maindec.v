@@ -25,29 +25,29 @@ always @(*)
     case (op)
       6'b000000://指令前6位，R-type再需要根据低6位缺点aluop
         case (funct)
-		//----------------寄存器算数运算---------------
+          //----------------寄存器算数运算---------------
           `EXE_ADD:
             controls <= {8'b1100_0000,1'b0,`EXE_ADD_OP};//ADD
           `EXE_SUB:
             controls <= {8'b1100_0000,1'b0,`EXE_SUB_OP};//SUB
           `EXE_SLT:
             controls <= {8'b1100_0000,1'b0,`EXE_SLT_OP};//SLT
-			`EXE_SLTU:
-			controls<={8'b1100_0000,1'b0,`EXE_SLTU_OP};//SLTU
-		   `EXE_ADDU:
-			controls <= {8'b1100_0000,1'b0,`EXE_ADDU_OP};//ADDU
-			`EXE_SUBU:
-			controls <= {8'b1100_0000,1'b0,`EXE_SUBU_OP};//SUBU
-			`EXE_MULT:
-			controls <= {8'b0000_0000,1'b1,`EXE_MULT_OP};//MULT
-			`EXE_MULTU:
-			controls <= {8'b0000_0000,1'b1,`EXE_MULTU_OP};//MULTU
-      `EXE_DIV:
-      controls <= {8'b0000_0000,1'b1,`EXE_DIV_OP}; //DIV
-      `EXE_DIVU:
-      controls <= {8'b0000_0000,1'b1,`EXE_DIVU_OP}; //DIVU
+          `EXE_SLTU:
+            controls<={8'b1100_0000,1'b0,`EXE_SLTU_OP};//SLTU
+          `EXE_ADDU:
+            controls <= {8'b1100_0000,1'b0,`EXE_ADDU_OP};//ADDU
+          `EXE_SUBU:
+            controls <= {8'b1100_0000,1'b0,`EXE_SUBU_OP};//SUBU
+          `EXE_MULT:
+            controls <= {8'b0000_0000,1'b1,`EXE_MULT_OP};//MULT
+          `EXE_MULTU:
+            controls <= {8'b0000_0000,1'b1,`EXE_MULTU_OP};//MULTU
+          `EXE_DIV:
+            controls <= {8'b0000_0000,1'b1,`EXE_DIV_OP}; //DIV
+          `EXE_DIVU:
+            controls <= {8'b0000_0000,1'b1,`EXE_DIVU_OP}; //DIVU
 
-		  //-----------------寄存器逻辑运算--------------------
+          //-----------------寄存器逻辑运算--------------------
           `EXE_AND:
             controls <= {8'b1100_0000,1'b0,`EXE_AND_OP};//AND
           `EXE_OR:
@@ -80,13 +80,9 @@ always @(*)
           `EXE_MFLO:
             controls <= {8'b1100_0000,1'b0,`EXE_MFLO_OP};//MFLO
           default:
-            controls <= {8'b1100_0000,1'b0,8'b0000_0000}; //{}运算符语法未知
+            controls <= {8'b1100_0000,1'b0,8'b0000_0000}; //
         endcase
       // 实验4指令
-      `EXE_LW:
-        controls <= {8'b1010_0101,1'b0,`EXE_LW_OP};//LW
-      `EXE_SW:
-        controls <= {8'b0010_1001,1'b0,`EXE_SW_OP};//SW
       `EXE_BEQ:
         controls <= {8'b0001_0001,1'b0,`EXE_BEQ_OP};//BEQ
       `EXE_ADDI:
@@ -103,16 +99,32 @@ always @(*)
         controls <= {8'b1010_0000,1'b0,`EXE_ORI_OP};//ORI
       `EXE_XORI:
         controls <= {8'b1010_0000,1'b0,`EXE_XORI_OP};//XORI
-	//立即数算数运算
-	`EXE_ADDI:
-	controls <= {8'b1010_0001,1'b0,`EXE_ADDI_OP};//ADDI
-	`EXE_ADDIU:
-	controls <= {8'b1010_0001,1'b0,`EXE_ADDI_OP};//ADDIU	
-	`EXE_SLTI:
-	controls<= {8'b1010_0001,1'b0,`EXE_SLTI_OP};//SLTI
-	`EXE_SLTIU:
-	controls<= {8'b1010_0001,1'b0,`EXE_SLTIU_OP};//SLTIU	
-
+      //立即数算数运算
+      `EXE_ADDI:
+        controls <= {8'b1010_0001,1'b0,`EXE_ADDI_OP};//ADDI
+      `EXE_ADDIU:
+        controls <= {8'b1010_0001,1'b0,`EXE_ADDI_OP};//ADDIU
+      `EXE_SLTI:
+        controls<= {8'b1010_0001,1'b0,`EXE_SLTI_OP};//SLTI
+      `EXE_SLTIU:
+        controls<= {8'b1010_0001,1'b0,`EXE_SLTIU_OP};//SLTIU
+      //存取指令
+      `EXE_LW:
+        controls <= {8'b1010_0101,1'b0,`EXE_LW_OP};//LW
+      `EXE_SW:
+        controls <= {8'b0010_1001,1'b0,`EXE_SW_OP};//SW
+      `EXE_LB:
+        controls<={8'b1010_0101,1'b0,`EXE_LB_OP};//LB
+      `EXE_LBU:
+        controls<={8'b1010_0101,1'b0,`EXE_LBU_OP};//LBU
+      `EXE_LH:
+        controls<={8'b1010_0101,1'b0,`EXE_LH_OP};//LH
+      `EXE_LHU:
+        controls<={8'b1010_0101,1'b0,`EXE_LHU_OP};//LHU
+      `EXE_SB:
+        controls<={8'b0010_1001,1'b0,`EXE_SB_OP};//SB
+      `EXE_SH:
+        controls<={8'b0010_1001,1'b0,`EXE_SH_OP};//SH
       default:
         controls <= {8'b00000000,1'b0,8'b0000_0000};//illegal op
     endcase

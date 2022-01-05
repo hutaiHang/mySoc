@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-
+`include "defines.vh"
 module datapath(
 	input wire clk,rst,
 	//取指
@@ -21,11 +21,12 @@ module datapath(
 	//访存
 	input wire memtoregM,
 	input wire regwriteM,
-	output wire[31:0] aluoutM,writedataM,
+	output wire[31:0] aluoutM_addr,writedataM,
 	input wire[31:0] readdataM,
 	input wire write_hiloM,
 	output wire stallM,
 	output wire flushM,
+	output reg[3:0] mem_wenM,
 	//回写
 	input wire memtoregW,
 	input wire regwriteW,
@@ -66,11 +67,15 @@ module datapath(
 	//访存
 	wire [4:0] writeregM;
 	wire [63:0] hilo_inM;
+	wire [7:0] alucontrolM;
+	wire [31:0] aluoutM;
 	//回写
 	wire [4:0] writeregW;
-	wire [31:0] aluoutW,readdataW,resultW;
+	wire [31:0] aluoutW,resultW;
+	reg [31:0] readdataW;
 	wire [63:0] hilo_inW;
 	wire [63:0] hilo_regW;
+	wire [7:0] alucontrolW;
 	wire forward_hilo_E;
 
 	//冒险模块
@@ -163,11 +168,58 @@ module datapath(
 	flopenrc #(32) r2M(clk,rst,~stallM,flushM,aluoutE,aluoutM);
 	flopenrc #(5) r3M(clk,rst,~stallM,flushM,writeregE,writeregM);
 	flopenrc #(64) r4M_hilo(clk,rst,~stallM,flushM,hilo_inE,hilo_inM);
+	flopenrc #(8) r5M_aluop(clk.rst,~stallM,flushM,alucontrolE,alucontrolM);
+	//sw各种指令选择
+	always @(*) begin
+		case (alucontrolM)
+			`EXE_SB_OP: mem_wenM <= 4'b0001;
+			`EXE_SH_OP: mem_wenM <= 4'b0011;
+			`EXE_SW_OP: mem_wenM <= 4'b1111;
+			default: mem_wenM<= 4'b0000;
+		endcase
+	end
+
+	// wire [31:0] aluoutM_addr;
+	assign aluoutM_addr={aluoutM[31:2],2'b00};//取字地址
 
 	//回写
 	flopenrc #(32) r1W(clk,rst,~stallW,flushW,aluoutM,aluoutW);
 	flopenrc #(32) r2W(clk,rst,~stallW,flushW,readdataM,readdataW);
 	flopenrc #(5) r3W(clk,rst,~stallW,flushW,writeregM,writeregW);
+	flopenrc #(8) r4W_aluop(clk.rst,~stallM,flushM,alucontrolM,alucontrolW);
+
+	//取字节
+	wire [31:0]readdata_signed_byte,readdata_unsigned_byte;
+	// assign readdata_true={{24{readdataW[7]}},readdataW[7:0]};
+	assign readdata_signed_byte = aluoutM[1:0]==2'b11 ? {{24{readdataW[7]}},readdataW[7:0]} :
+							aluoutM[1:0]==2'b10 ? {{24{readdataW[15]}},readdataW[15:8]} :
+							aluoutM[1:0]==2'b01 ? {{24{readdataW[23]}},readdataW[23:16]} :
+							aluoutM[1:0]==2'b00 ? {{24{readdataW[31]}},readdataW[31:24]} : 32'b0;
+
+	assign readdata_unsigned_byte = aluoutM[1:0]==2'b11 ? {{24{1'b0}},readdataW[7:0]} :
+							aluoutM[1:0]==2'b10 ? {{24{1'b0}},readdataW[15:8]} :
+							aluoutM[1:0]==2'b01 ? {{24{1'b0}},readdataW[23:16]} :
+							aluoutM[1:0]==2'b00 ? {{24{1'b0}},readdataW[31:24]} : 32'b0;
+	
+	//取半字
+	wire [31:0]readdata_signed_half,readdata_unsigned_half;
+	// assign readdata_true={{24{readdataW[7]}},readdataW[7:0]};
+	assign readdata_signed_half = aluoutM[1:0]==2'b10 ? {{16{readdataW[15]}},readdataW[15:0]} :
+							aluoutM[1:0]==2'b00 ? {{16{readdataW[31]}},readdataW[31:16]} : 32'b0;
+
+	assign readdata_unsigned =  aluoutM[1:0]==2'b10 ? {{16{1'b0}},readdataW[15:0]} :
+							aluoutM[1:0]==2'b00 ? {{16{1'b0}},readdataW[31:16]} : 32'b0;
+
+	always @(*) begin
+		case (alucontrolW)
+			`EXE_LB_OP:readdataW <= readdata_signed_byte;
+			`EXE_LBU_OP:readdataW<= readdata_unsigned_byte;
+			`EXE_LH_OP: readdataW <= readdata_signed_half;
+			`EXE_LHU_OP: readdataW <= readdata_unsigned_half;
+			default: readdataW <= readdataW;
+		endcase	
+	end
+
 	mux2 #(32) resmux(aluoutW,readdataW,memtoregW,resultW);
 	flopenrc #(64) r4W_hilo(clk,rst,~stallW,flushW,hilo_inM,hilo_inW);
 	hilo_reg my_hilo_regW(clk,rst,write_hiloW,hilo_inW[63:32],hilo_inW[31:0],hilo_regW[63:32],hilo_regW[31:0]);
