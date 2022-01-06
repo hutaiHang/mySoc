@@ -5,11 +5,13 @@ module controller(
          input wire clk,rst,
          //译码
          input wire[5:0] opD,functD,
+         input wire [31:0] instrD,
          input flushD,//刷新信号
          input stallD,//TODO D阶段阻塞信号，目前没处理
          input equalD,
          output wire pcsrcD,branchD,jumpD,
-
+         output wire linkD,
+         output wire jrD,
          //执行
          input wire flushE,stallE,
          output wire memtoregE,alusrcE,
@@ -41,11 +43,13 @@ wire memwriteE;
 maindec md(
           // input
           opD,functD,
-
+          instrD,
           // output
           // 新信号
           sign_extdD,
           write_hiloD,
+          linkD,
+          jrD,
           // 旧信号
           memtoregD,memwriteD,
           branchD,alusrcD,

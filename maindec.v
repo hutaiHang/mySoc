@@ -5,12 +5,14 @@ module maindec(
          // input
          input wire[5:0] op,
          input wire [5:0] funct,
-
+         input wire[31:0] instrD,
          // output
          // 新信号
          output wire sign_extd,
          // HILO 控制信号
          output wire write_hilo, // 是否要写 HILO, 1代表写HILO, 0代表不写HILO
+         output wire linkD,//需要写入31号寄存器
+         output wire jrD,//需要跳转到指定寄存器
          // 旧信号
          output wire memtoreg,memwrite,
          output wire branch,alusrc,
@@ -19,6 +21,15 @@ module maindec(
          output wire[7:0] aluop
        );
 reg[16:0] controls;
+assign linkD = (op==`EXE_BLTZAL|
+                    `EXE_BGEZAL|
+                    `EXE_JAL|
+                    ((op==6'b000000)&(funct==`EXE_JALR)&(instrD[15:11]==5'b00000))
+                );
+assign jrD = (
+              (op==6'b000000)&
+              ( (funct==`EXE_JALR) | (funct==`EXE_JR) )
+             );
 assign {regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,write_hilo,aluop} = controls;
 always @(*)
   begin
@@ -46,7 +57,6 @@ always @(*)
             controls <= {8'b0000_0000,1'b1,`EXE_DIV_OP}; //DIV
           `EXE_DIVU:
             controls <= {8'b0000_0000,1'b1,`EXE_DIVU_OP}; //DIVU
-
           //-----------------寄存器逻辑运算--------------------
           `EXE_AND:
             controls <= {8'b1100_0000,1'b0,`EXE_AND_OP};//AND
@@ -79,22 +89,28 @@ always @(*)
             controls <= {8'b1100_0000,1'b0,`EXE_MFHI_OP};//MFHI
           `EXE_MFLO:
             controls <= {8'b1100_0000,1'b0,`EXE_MFLO_OP};//MFLO
-          // ----------- 分支跳转指令 ---------
-          // `EXE_JR:
-          //   controls <= {8'b0011_0000,1'b0,`EXE_JR_OP}; // JR
-          // `EXE_JALR:
-          //   controls <= {8'b1111_0000,1'b0,`EXE_JALR}; // JALR
-
+          //------------跳转指令--------------
+          `EXE_JR:
+            controls<= {8'b0000_0011,1'b0,`EXE_JR_OP};//JR
+      // {regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,write_hilo,aluop}
+          `EXE_JALR:
+            controls<= {8'b1100_0011,1'b0,`EXE_JALR_OP};//JALR
           default:
             controls <= {8'b1100_0000,1'b0,8'b0000_0000}; //
         endcase
-      // 实验4指令
-      `EXE_BEQ:
-        controls <= {8'b0001_0001,1'b0,`EXE_BEQ_OP};//BEQ
-      `EXE_ADDI:
-        controls <= {8'b1010_0001,1'b0,`EXE_ADDI_OP};//ADDI
-      `EXE_J:
-        controls <= {8'b0000_0011,1'b0,`EXE_J_OP};//J
+      6'b000001:
+        case (instrD[20:16])
+          `EXE_BLTZ:
+            controls <= {8'b0001_0001,1'b0,`EXE_BLTZ_OP};//BLTZ
+          `EXE_BLTZAL:
+            controls <= {8'b1001_0001,1'b0,`EXE_BLTZAL_OP};//BLTZAL
+          `EXE_BGEZ:
+            controls <= {8'b0001_0001,1'b0,`EXE_BGEZ_OP};//BGEZ
+          `EXE_BGEZAL:
+            controls <= {8'b1001_0001,1'b0,`EXE_BGEZAL_OP};//BGEZAL
+          default:
+            controls <= {8'b0000_0000,1'b0,8'b0000_0000};//非法指令
+          endcase
       // 52条新指令
       //-----------立即数逻辑运算--------------
       `EXE_ANDI:
@@ -131,6 +147,29 @@ always @(*)
         controls<={8'b0010_1001,1'b0,`EXE_SB_OP};//SB
       `EXE_SH:
         controls<={8'b0010_1001,1'b0,`EXE_SH_OP};//SH
+      // ----------- 分支跳转指令 ---------
+      //   regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,aluop
+      `EXE_BEQ:
+        controls <= {8'b0001_0001,1'b0,`EXE_BEQ_OP};//BEQ
+      `EXE_BNE:
+        controls <= {8'b0001_0001,1'b0,`EXE_BNE_OP};//BNE
+      `EXE_BLEZ:
+        controls <= {8'b0001_0001,1'b0,`EXE_BLEZ_OP};//BLEZ
+      `EXE_BGTZ:
+        controls <= {8'b0001_0001,1'b0,`EXE_BGTZ_OP};//BGTZ
+      //  regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,sign_extd,aluop
+      // J target	无条件直接跳转
+      // JAL target	无条件直接跳转至子程序并保存返回地址
+      // JR rs	无条件寄存器跳转
+      // JALR rd, rs	无条件寄存器跳转至子程序并保存返回地址
+      `EXE_J:
+        controls <= {8'b0000_0011,1'b0,`EXE_J_OP};//J
+      `EXE_JAL:
+        controls<={8'b1000_0011,1'b0,`EXE_JAL_OP};//JAL
+      // `EXE_JR:
+      //   controls <= {8'b0011_0000,1'b0,`EXE_JR_OP}; // JR
+      // `EXE_JALR:
+      //   controls <= {8'b1111_0000,1'b0,`EXE_JALR}; // JALR
       default:
         controls <= {8'b00000000,1'b0,8'b0000_0000};//illegal op
     endcase

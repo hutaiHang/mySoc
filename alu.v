@@ -132,7 +132,6 @@ module alu(
 			`EXE_XOR_OP: y<= a^b;//XOR
 			`EXE_LW_OP,`EXE_LB_OP,`EXE_LBU_OP,`EXE_LH_OP,`EXE_LHU_OP: y<= a+b;//存取指令
 			`EXE_SW_OP,`EXE_SH_OP,`EXE_SB_OP: y<=a+b;//SW
-			`EXE_BEQ_OP: y<= a+(~b)+1;//BEQ
 			// ----移位指令----
 			`EXE_SLL_OP: y<=(b<<offset);//SLL
 			`EXE_SRL_OP: y<=(b>>offset);//SRL
@@ -145,7 +144,15 @@ module alu(
 			`EXE_MTLO_OP: lo_output <= a;
 			`EXE_MFHI_OP: y <= hi_input;
 			`EXE_MFLO_OP: y <= lo_input;
-			`EXE_BEQ_OP: y <= s;
+			//---------转移指令------------
+			`EXE_BEQ_OP: y<= a==b?1:0;//BEQ
+			`EXE_BNE_OP: y<= a!=b?1:0; //BNE
+			`EXE_BGEZ_OP: y<= (a[31] == 1'b0);
+			`EXE_BGTZ_OP:  y<= ((a[31] == 1'b0) && (a != `ZeroWord));
+			`EXE_BLEZ_OP: y <= ((a[31] == 1'b1) || (a == `ZeroWord));
+			`EXE_BLTZ_OP: y<= (a[31] == 1'b1);
+			`EXE_BLTZAL_OP:y<= (a[31] == 1'b1);
+			`EXE_BGEZAL_OP:y<= (a[31] == 1'b0);
 			default: y<=32'b0;
 		endcase
 	end
