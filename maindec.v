@@ -24,12 +24,12 @@ module maindec(
 reg[16:0] controls;
 
 assign jwriteD = ( op == `EXE_JAL ) | 
-              (op==6'b000000)& ( (funct==`EXE_JALR) | (funct==`EXE_JR) );
+              ( (op==6'b000000) & ( (funct==`EXE_JALR) | (funct ==`EXE_JR) ) ) | 
+              ( (op==6'b000001) & ( (instrD[20:16]==`EXE_BGEZAL) | (instrD[20:16] ==`EXE_BLTZAL) ) );
 
-assign linkD = ( ( op == `EXE_BLTZAL ) |
-                 ( op == `EXE_BGEZAL ) |
+assign linkD = ( ( (op==6'b000001) & ( (instrD[20:16] == `EXE_BGEZAL) | (instrD[20:16] == `EXE_BLTZAL) ) ) |
                  ( op == `EXE_JAL ) |
-                 ( (op==6'b000000) & (funct==`EXE_JALR) & (instrD[15:11]==5'b00000) )
+                 ( (op==6'b000000) & (funct == `EXE_JALR) & (instrD[15:11] == 5'b00000) )
                 );
 assign jrD = (
               (op==6'b000000)&

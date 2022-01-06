@@ -215,23 +215,41 @@ module datapath(
 	mux3 #(32) forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
 	mux2 #(32) srcbmux(srcb2E,final_imm,alusrcE,srcb3E);
 	wire [31:0] aluoutEsrc;
-	alu alu(clk,rst,srca2E,srcb3E,offsetE,alucontrolE,alu_hilo_src[63:32],alu_hilo_src[31:0],hilo_inE[63:32],hilo_inE[31:0],div_stallE,aluoutEsrc,overflowE,zeroE);
+	alu alu(clk,
+			rst,
+			srca2E,
+			srcb3E,
+			offsetE,
+			alucontrolE,
+			alu_hilo_src[63:32],
+			alu_hilo_src[31:0],
+			hilo_inE[63:32],
+			hilo_inE[31:0],
+			div_stallE,
+			aluoutEsrc,
+			overflowE,
+			zeroE);
 	mux2 #(32) resmux2(aluoutEsrc,pcplus8E, jwriteE, aluoutE);
+	
+	wire zero_trueE;
+	assign zero_trueE = aluoutEsrc;
 
 	wire [4:0] writeregEsrc1;
 	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregEsrc1);
 	mux2 #(5) wr2mux(writeregEsrc1,5'd31,linkE,writeregE);//选择31或其他
+
+	wire zero_trueM;
 
 	wire [31:0]  pcjrE;
 	assign pcjrE = srca2E;
 
 	wire [31:0] pcjrM;
 	//访存
-	flopenrc #(32) r1M(clk,rst,~stallM,flushM,srcb2E,writedataM);
-	flopenrc #(32) r2M(clk,rst,~stallM,flushM,aluoutE,aluoutM);
-	flopenrc #(5) r3M(clk,rst,~stallM,flushM,writeregE,writeregM);
-	flopenrc #(64) r4M_hilo(clk,rst,~stallM,flushM,hilo_inE,hilo_inM);
-	flopenrc #(8) r5M_aluop(clk,rst,~stallM,flushM,alucontrolE,alucontrolM);
+	flopenrc #(32) r1M		(clk,rst,~stallM,flushM,srcb2E,writedataM);
+	flopenrc #(32) r2M		(clk,rst,~stallM,flushM,aluoutE,aluoutM);
+	flopenrc #(5) r3M		(clk,rst,~stallM,flushM,writeregE,writeregM);
+	flopenrc #(64) r4M_hilo	(clk,rst,~stallM,flushM,hilo_inE,hilo_inM);
+	flopenrc #(8) r5M_aluop	(clk,rst,~stallM,flushM,alucontrolE,alucontrolM);
 	flopenrc #(1) r6M_branch(clk,rst,~stallM,flushM,branchE,branchM);// branch
 	flopenrc #(1) r7M_overflow(clk,rst,~stallM,flushM,overflowE,overflowM);// overflow
 	flopenrc #(1) r8M_zero(clk,rst,~stallM,flushM,zeroE,zeroM);// zero
@@ -242,11 +260,13 @@ module datapath(
 	flopenrc #(32) r13M(clk,rst,~stallM,flushM,pcplus8E,pcplus8M);//
 	
 	flopenrc #(32) r14M(clk,rst,~stallM,flushM,pcjrE,pcjrM);//
-	flopenrc #(1) r15M(clk,rst,~stallM,flushM,jrE,jrM);//		
+	flopenrc #(1) r15M(clk,rst,~stallM,flushM,jrE,jrM);//
+	flopenrc #(1) r16M_zero_true(clk,rst,~stallM,flushM,zero_trueE,zero_trueM);//zero_true
+
 	wire [31:0] pcjump_trueM;
 	assign pcjump_trueM= jrM ? pcjrM:pcjumpM;
 
-	assign pcsrcM = branchM & aluoutM;
+	assign pcsrcM = branchM & zero_trueM;
 
 	//sw各种指令选择
 	always @(*) begin

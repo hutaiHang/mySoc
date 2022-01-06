@@ -145,14 +145,14 @@ module alu(
 			`EXE_MFHI_OP: y <= hi_input;
 			`EXE_MFLO_OP: y <= lo_input;
 			//---------转移指令------------
-			`EXE_BEQ_OP: y<= a==b?1:0;//BEQ
-			`EXE_BNE_OP: y<= a!=b?1:0; //BNE
-			`EXE_BGEZ_OP: y<= (a[31] == 1'b0);
-			`EXE_BGTZ_OP:  y<= ((a[31] == 1'b0) && (a != `ZeroWord));
-			`EXE_BLEZ_OP: y <= ((a[31] == 1'b1) || (a == `ZeroWord));
-			`EXE_BLTZ_OP: y<= (a[31] == 1'b1);
-			`EXE_BLTZAL_OP:y<= (a[31] == 1'b1);
-			`EXE_BGEZAL_OP:y<= (a[31] == 1'b0);
+			`EXE_BEQ_OP: y<= (a==b) ? 32'hffff_ffff:32'h0000_0000;//BEQ
+			`EXE_BNE_OP: y<= (a!=b) ? 32'hffff_ffff:32'h0000_0000; //BNE
+			`EXE_BGEZ_OP: y<= (a[31] == 1'b0) ? 32'hffff_ffff:32'h0000_0000;
+			`EXE_BGTZ_OP:  y<= ((a[31] == 1'b0) && (a != `ZeroWord)) ? 32'hffff_ffff:32'h0000_0000;
+			`EXE_BLEZ_OP: y <= ((a[31] == 1'b1) || (a == `ZeroWord)) ? 32'hffff_ffff:32'h0000_0000;
+			`EXE_BLTZ_OP: y<= (a[31] == 1'b1) ? 32'hffff_ffff:32'h0000_0000;
+			`EXE_BLTZAL_OP:y<= (a[31] == 1'b1) ? 32'hffff_ffff:32'h0000_0000;
+			`EXE_BGEZAL_OP:y<= (a[31] == 1'b0) ? 32'hffff_ffff:32'h0000_0000;
 			default: y<=32'b0;
 		endcase
 	end

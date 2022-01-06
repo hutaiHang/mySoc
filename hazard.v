@@ -88,26 +88,26 @@ module hazard(
 				memtoregM &(writeregM == rsD | writeregM == rtD));
 
 	//F阶段阻塞
-	assign #1 stallF = lwstallD | div_stallE; //取指阶段阻塞
+	assign stallF = lwstallD | div_stallE; //取指阶段阻塞
 	//D阶段阻塞
-	assign #1 stallD = lwstallD | div_stallE;
+	assign stallD = lwstallD | div_stallE;
 	//E阶段阻塞
-	assign #1 stallE = div_stallE;
+	assign stallE = div_stallE;
 	//M阶段阻塞
-	assign #1 stallM = 0;//TODO M阶段阻塞
+	assign stallM = 0;//TODO M阶段阻塞
 	//W阶段阻塞
-	assign #1 stallW = 0;//TODO W阶段阻塞
+	assign stallW = 0;//TODO W阶段阻塞
 
 	//F阶段刷新
-	assign #1 flushF = jump_branchM;//TODO F阶段刷新
+	assign flushF = jump_branchM;//TODO F阶段刷新
 	//D阶段刷新
-	assign #1 flushD = jump_branchM;//TODO D阶段刷新
+	assign flushD = jump_branchM;//TODO D阶段刷新
 	//E阶段刷线
-	assign #1 flushE = lwstallD | jump_branchM; 
+	assign flushE = lwstallD | jump_branchM; 
 	//M阶段刷新
-	assign #1 flushM = 0;//TODO m阶段刷新目前还没出来
+	assign flushM = 0;//TODO m阶段刷新目前还没出来
 	//W阶段刷新
-	assign #1 flushW = 0;//TODO W阶段刷新
+	assign flushW = 0;//TODO W阶段刷新
 
 	
 endmodule
