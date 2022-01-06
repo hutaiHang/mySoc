@@ -21,7 +21,8 @@ module datapath(
 		//访存
 		input wire memtoregM,
 		input wire regwriteM,
-		output wire[31:0] aluoutM_addr,writedataM,
+		output wire[31:0] aluoutM_addr,
+		output reg [31:0] write_data_out,
 		input wire [31:0] readdataM,
 		input wire write_hiloM,
 		output wire stallM,
@@ -86,6 +87,7 @@ module datapath(
 	wire [31:0] pcbranchM;
 	wire jumpM;
 	wire [31:0] pcjumpM;
+	wire [31:0] writedataM;
 
 	//回写
 	wire [4:0] writeregW;
@@ -210,18 +212,40 @@ module datapath(
 
 	//sw各种指令选择
 	always @(*) begin
+		mem_wenM <= 4'b0000;
 		case (alucontrolM)
-			`EXE_SB_OP: mem_wenM <= 4'b0001;
-			`EXE_SH_OP: mem_wenM <= 4'b0011;
-			`EXE_SW_OP: mem_wenM <= 4'b1111;
-			default: mem_wenM<= 4'b0000;
+			`EXE_SB_OP: begin 
+				mem_wenM <= 
+							(aluoutM[1:0]==2'b00) ? 4'b0001 : 
+							(aluoutM[1:0]==2'b01) ? 4'b0010 : 
+							(aluoutM[1:0]==2'b10) ? 4'b0100 : 
+							(aluoutM[1:0]==2'b11) ? 4'b1000 : 
+							4'b0001;
+				write_data_out <= {writedataM[7:0], writedataM[7:0], writedataM[7:0], writedataM[7:0]};
+			end
+			`EXE_SH_OP: begin
+				mem_wenM <= 
+							(aluoutM[1:0]==2'b00) ? 4'b0011 : 
+							(aluoutM[1:0]==2'b10) ? 4'b1100 : 
+							4'b0011;
+				write_data_out <= {writedataM[15:0], writedataM[15:0]};
+			end
+
+			`EXE_SW_OP: begin
+				mem_wenM <= 4'b1111;
+				write_data_out <= writedataM;
+			end
+			default: begin
+				mem_wenM <= 4'b0000;
+				write_data_out <= writedataM;
+			end
 		endcase
 	end
 
 	// wire [31:0] aluoutM_addr;
 	// assign aluoutM_addr={aluoutM[31:2],2'b00};//取字地址
-	assign aluoutM_addr = aluoutM << 2;//取字地址
-	// assign aluoutM_addr = aluoutM;//取字地址
+	// assign aluoutM_addr = aluoutM << 2;//取字地址
+	assign aluoutM_addr = aluoutM;//取字地址
 
 	//回写
 	flopenrc #(32) r1W(clk,rst,~stallW,flushW,aluoutM,aluoutW);
@@ -233,23 +257,23 @@ module datapath(
 	//取字节
 	wire [31:0]readdata_signed_byte,readdata_unsigned_byte;
 	// assign readdata_true={{24{readdataW[7]}},readdataW[7:0]};
-	assign readdata_signed_byte = aluoutW[1:0]==2'b11 ? {{24{readdataW[7]}},readdataW[7:0]} :
-							aluoutW[1:0]==2'b10 ? {{24{readdataW[7]}},readdataW[7:0]} :
-							aluoutW[1:0]==2'b01 ? {{24{readdataW[7]}},readdataW[7:0]} :
+	assign readdata_signed_byte = aluoutW[1:0]==2'b11 ? {{24{readdataW[31]}},readdataW[31:24]} :
+							aluoutW[1:0]==2'b10 ? {{24{readdataW[23]}},readdataW[23:16]} :
+							aluoutW[1:0]==2'b01 ? {{24{readdataW[15]}},readdataW[15:8]} :
 							aluoutW[1:0]==2'b00 ? {{24{readdataW[7]}},readdataW[7:0]} : 32'b0;
 
-	assign readdata_unsigned_byte = aluoutW[1:0]==2'b11 ? {{24{1'b0}},readdataW[7:0]} :
-							aluoutW[1:0]==2'b10 ? {{24{1'b0}},readdataW[7:0]} :
-							aluoutW[1:0]==2'b01 ? {{24{1'b0}},readdataW[7:0]} :
+	assign readdata_unsigned_byte = aluoutW[1:0]==2'b11 ? {{24{1'b0}},readdataW[31:24]} :
+							aluoutW[1:0]==2'b10 ? {{24{1'b0}},readdataW[23:16]} :
+							aluoutW[1:0]==2'b01 ? {{24{1'b0}},readdataW[15:8]} :
 							aluoutW[1:0]==2'b00 ? {{24{1'b0}},readdataW[7:0]} : 32'b0;
 	
 	//取半字
 	wire [31:0]readdata_signed_half,readdata_unsigned_half;
 	// assign readdata_true={{24{readdataW[7]}},readdataW[7:0]};
-	assign readdata_signed_half = aluoutW[1:0]==2'b10 ? {{16{readdataW[15]}},readdataW[15:0]} :
+	assign readdata_signed_half = aluoutW[1:0]==2'b10 ? {{16{readdataW[31]}},readdataW[31:16]} :
 							aluoutW[1:0]==2'b00 ?  {{16{readdataW[15]}},readdataW[15:0]} : 32'b0;
 
-	assign readdata_unsigned_half =  aluoutW[1:0]==2'b10 ? {{16{1'b0}},readdataW[15:0]} :
+	assign readdata_unsigned_half =  aluoutW[1:0]==2'b10 ? {{16{1'b0}},readdataW[31:16]} :
 							aluoutW[1:0]==2'b00 ? {{16{1'b0}},readdataW[15:0]} : 32'b0;
 
 	always @(*) begin
