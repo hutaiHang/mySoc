@@ -230,7 +230,7 @@ module datapath(
 			overflowE,
 			zeroE);
 	mux2 #(32) resmux2(aluoutEsrc,pcplus8E, jwriteE, aluoutE);
-	
+
 	wire zero_trueE;
 	assign zero_trueE = aluoutEsrc;
 
@@ -264,7 +264,7 @@ module datapath(
 	flopenrc #(1) r16M_zero_true(clk,rst,~stallM,flushM,zero_trueE,zero_trueM);//zero_true
 
 	wire [31:0] pcjump_trueM;
-	assign pcjump_trueM= jrM ? pcjrM:pcjumpM;
+	assign pcjump_trueM = jrM ? pcjrM:pcjumpM;
 
 	assign pcsrcM = branchM & zero_trueM;
 
