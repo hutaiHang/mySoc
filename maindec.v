@@ -21,10 +21,10 @@ module maindec(
          output wire[7:0] aluop
        );
 reg[16:0] controls;
-assign linkD = (op==`EXE_BLTZAL|
-                    `EXE_BGEZAL|
-                    `EXE_JAL|
-                    ((op==6'b000000)&(funct==`EXE_JALR)&(instrD[15:11]==5'b00000))
+assign linkD = ( ( op == `EXE_BLTZAL ) |
+                 ( op == `EXE_BGEZAL ) |
+                 ( op == `EXE_JAL ) |
+                 ( (op==6'b000000) & (funct==`EXE_JALR) & (instrD[15:11]==5'b00000) )
                 );
 assign jrD = (
               (op==6'b000000)&

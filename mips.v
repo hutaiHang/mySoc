@@ -57,7 +57,6 @@ module mips(
 		//fetch stage
 		pcF,
 		instrF,
-		instrD,
 		//decode stage
 		pcsrcD,branchD,
 		jumpD,
@@ -65,6 +64,7 @@ module mips(
 		jrD,
 		equalD,
 		opD,functD,
+		instrD,
 		//execute stage
 		memtoregE,
 		alusrcE,regdstE,
