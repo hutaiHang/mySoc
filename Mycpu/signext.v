@@ -1,15 +1,31 @@
 `timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 2017/11/02 14:29:33
+// Design Name: 
+// Module Name: signext
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
 
 module signext(
-	// input
 	input wire[15:0] a,
-
-	// output
-	output wire [31:0] y_signed,
-	output wire [31:0] y_unsigned
-
+	output wire[31:0] y,
+	input wire [1:0] type, //
+	input wire[31:0]opD
     );
 
-	assign y_signed = {{16{a[15]}},a};
-	assign y_unsigned = { {16{1'b0}} ,a[15:0]};
+	assign y = (type==2'b11)?  {{16{1'b0}},a}:{{16{a[15]}},a};
 endmodule
