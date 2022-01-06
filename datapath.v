@@ -10,6 +10,7 @@ module datapath(
 		input wire jumpD,
 		input wire linkD,
 		input wire jrD,
+		input wire jwriteD,
 		output wire equalD,
 		output wire[5:0] opD,functD,
 		output wire[31:0] instrD,
@@ -81,6 +82,8 @@ module datapath(
 	wire linkE;
 	wire [31:0] pcplus8E;
 	wire jrE;
+	wire jwriteE;
+
 	//访存
 	wire [4:0] writeregM;
 	wire [63:0] hilo_inM;
@@ -97,6 +100,8 @@ module datapath(
 	wire linkM;
 	wire [31:0] pcplus8M;
 	wire jrM;
+	wire jwriteM;
+
 	//回写
 	wire [4:0] writeregW;
 	wire [31:0] aluoutW,resultW;
@@ -201,6 +206,8 @@ module datapath(
 	flopenrc #(32) r14E(clk,rst,~stallE,flushE,pcplus8D,pcplus8E);//
 
 	flopenrc #(1) r15E(clk,rst,~stallE,flushE,jrD,jrE);//
+
+	flopenrc #(1) r16E_jwrite(clk,rst,~stallE,flushE,jwriteD,jwriteE);// jwrite
 	//TODO 画数据通路图---
 	mux2 #(32) choice_imm_is_signed(unsignimmE,signimmE,sign_extdE,final_imm);
 	//----
@@ -209,7 +216,7 @@ module datapath(
 	mux2 #(32) srcbmux(srcb2E,final_imm,alusrcE,srcb3E);
 	wire [31:0] aluoutEsrc;
 	alu alu(clk,rst,srca2E,srcb3E,offsetE,alucontrolE,alu_hilo_src[63:32],alu_hilo_src[31:0],hilo_inE[63:32],hilo_inE[31:0],div_stallE,aluoutEsrc,overflowE,zeroE);
-	mux2 #(32) resmux2(aluoutEsrc,pcplus8E,linkE,aluoutE);
+	mux2 #(32) resmux2(aluoutEsrc,pcplus8E, jwriteE, aluoutE);
 
 	wire [4:0] writeregEsrc1;
 	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregEsrc1);

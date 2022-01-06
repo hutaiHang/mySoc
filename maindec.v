@@ -13,6 +13,7 @@ module maindec(
          output wire write_hilo, // 是否要写 HILO, 1代表写HILO, 0代表不写HILO
          output wire linkD,//需要写入31号寄存器
          output wire jrD,//需要跳转到指定寄存器
+         output wire jwriteD,// 写的是pc+8还是aluout
          // 旧信号
          output wire memtoreg,memwrite,
          output wire branch,alusrc,
@@ -21,6 +22,10 @@ module maindec(
          output wire[7:0] aluop
        );
 reg[16:0] controls;
+
+assign jwriteD = ( op == `EXE_JAL ) | 
+              (op==6'b000000)& ( (funct==`EXE_JALR) | (funct==`EXE_JR) );
+
 assign linkD = ( ( op == `EXE_BLTZAL ) |
                  ( op == `EXE_BGEZAL ) |
                  ( op == `EXE_JAL ) |

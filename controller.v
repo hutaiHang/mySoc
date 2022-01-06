@@ -12,6 +12,7 @@ module controller(
          output wire pcsrcD,branchD,jumpD,
          output wire linkD,
          output wire jrD,
+          output wire jwriteD,
          //执行
          input wire flushE,stallE,
          output wire memtoregE,alusrcE,
@@ -50,6 +51,7 @@ maindec md(
           write_hiloD,
           linkD,
           jrD,
+          jwriteD,
           // 旧信号
           memtoregD,memwriteD,
           branchD,alusrcD,

@@ -27,6 +27,7 @@ module mips(
 	wire write_hiloM;
 	wire stallW,flushW;
 	wire write_hiloW;
+	wire jwriteD;
 
 	controller c(
 		clk,rst,
@@ -38,6 +39,7 @@ module mips(
 		pcsrcD,branchD,jumpD,
 		linkD,
 		jrD,
+		jwriteD,
 		//execute stage
 		flushE,stallE,
 		memtoregE,alusrcE,
@@ -62,6 +64,7 @@ module mips(
 		jumpD,
 		linkD,
 		jrD,
+		jwriteD,
 		equalD,
 		opD,functD,
 		instrD,
