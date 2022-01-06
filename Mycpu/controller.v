@@ -6,13 +6,13 @@ module controller(
          //译码
          input wire[5:0] opD,functD,
          input wire [31:0] instrD,
-         input flushD,//刷新信号
-         input stallD,//TODO D阶段阻塞信号，目前没处理
-         input equalD,
+         input wire flushD,//刷新信号
+         input wire stallD,//TODO D阶段阻塞信号，目前没处理
+         input wire equalD,
          output wire pcsrcD,branchD,jumpD,
          output wire linkD,
          output wire jrD,
-          output wire jwriteD,
+        output wire jwriteD,
          //执行
          input wire flushE,stallE,
          output wire memtoregE,alusrcE,
@@ -24,6 +24,7 @@ module controller(
          //访存
          input wire flushM,stallM,
          output wire memtoregM,memwriteM,regwriteM,write_hiloM,
+         output wire memenM,
          //回写
          input wire flushW,stallW,
          output wire memtoregW,regwriteW,write_hiloW
@@ -32,6 +33,7 @@ module controller(
 //译码
 wire[7:0] aluopD;
 wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD;
+wire memenD, memenE;
 // 有符号/无符号选择信号
 wire sign_extdD;
 // 是否写HILO, 1代表写HILO, 0代表不写HILO
@@ -45,9 +47,11 @@ maindec md(
           // input
           opD,functD,
           instrD,
+          stallD,
           // output
           // 新信号
           sign_extdD,
+          memenD,
           write_hiloD,
           linkD,
           jrD,
@@ -73,10 +77,10 @@ flopenrc #(FLOP_WIDTH) regE(
          rst,
          ~stallE,
          flushE,
-         {memtoregD, memwriteD, alusrcD, regdstD, regwriteD, sign_extdD, write_hiloD, aluopD},
+         {memtoregD, memwriteD, alusrcD, regdstD, regwriteD, sign_extdD, write_hiloD,memenD, aluopD},
 
          // output
-         {memtoregE, memwriteE, alusrcE, regdstE, regwriteE, sign_extdE, write_hiloE, aluopE}
+         {memtoregE, memwriteE, alusrcE, regdstE, regwriteE, sign_extdE, write_hiloE,memenE, aluopE}
        );
 
 //执行-访存
@@ -84,8 +88,8 @@ flopenrc #(FLOP_WIDTH) regM(
         clk,rst,
         ~stallM,
         flushM,
-        {memtoregE,memwriteE,regwriteE, write_hiloE},
-        {memtoregM,memwriteM,regwriteM, write_hiloM}
+        {memtoregE,memwriteE,regwriteE,memenE, write_hiloE},
+        {memtoregM,memwriteM,regwriteM,memenM, write_hiloM}
       );
 //访存-回写
 

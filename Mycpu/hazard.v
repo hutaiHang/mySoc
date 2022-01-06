@@ -103,9 +103,9 @@ module hazard(
 	//D阶段刷新
 	assign flushD = jump_branchM;//TODO D阶段刷新
 	//E阶段刷线
-	assign flushE = lwstallD | jump_branchM; 
+	assign flushE = lwstallD | ( ~div_stallE & (jump_branchM) ); 
 	//M阶段刷新
-	assign flushM = 0;//TODO m阶段刷新目前还没出来
+	assign flushM = div_stallE;//TODO m阶段刷新目前还没出来
 	//W阶段刷新
 	assign flushW = 0;//TODO W阶段刷新
 

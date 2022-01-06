@@ -6,9 +6,11 @@ module maindec(
          input wire[5:0] op,
          input wire [5:0] funct,
          input wire[31:0] instrD,
+         input wire stallD,
          // output
          // 新信号
          output wire sign_extd,
+         output wire memenD,
          // HILO 控制信号
          output wire write_hilo, // 是否要写 HILO, 1代表写HILO, 0代表不写HILO
          output wire linkD,//需要写入31号寄存器
@@ -22,6 +24,9 @@ module maindec(
          output wire[7:0] aluop
        );
 reg[16:0] controls;
+
+	assign memenD =( (op == `EXE_LB)||(op == `EXE_LBU)||(op == `EXE_LH)||
+                (op == `EXE_LHU)||(op == `EXE_LW)||(op == `EXE_SB)||(op == `EXE_SH)||(op == `EXE_SW)) && ~stallD;
 
 assign jwriteD = ( op == `EXE_JAL ) | 
               ( (op==6'b000000) & ( (funct==`EXE_JALR) | (funct ==`EXE_JR) ) ) | 
@@ -178,6 +183,14 @@ always @(*)
       default:
         controls <= {8'b00000000,1'b0,8'b0000_0000};//illegal op
     endcase
+    ////////////////////////////////////////
+		//bug
+		//只能在不stall的时候出结果，否则trace无法判断。
+    if(stallD)begin
+			controls[6]<=0;
+			controls[4]<=0;
+			controls[1]<=0;
+		end
   end
 endmodule
   // ANDI各信号取值,立即数指令各信号与之相同

@@ -8,14 +8,19 @@ module mips(
 	output wire memwriteM,
 	output wire[3:0] mem_wenM,
 	output wire[31:0] aluoutM_addr,writedataM,
-	input wire[31:0] readdataM 
+	input wire[31:0] readdataM,
+	output wire memenM,
+	output wire [31:0] pcW,
+	output wire regwriteW,
+	output wire [31:0] resultW,
+	output wire [4:0] writeregW
     );
 	
 	wire [5:0] opD,functD;
 	wire [31:0] instrD;
 	wire stallD,flushD;
 	wire regdstE,alusrcE,pcsrcD,memtoregE,memtoregM,memtoregW,
-			regwriteE,regwriteM,regwriteW;
+			regwriteE,regwriteM;
 	wire linkD;
 	wire jrD;
 	wire [7:0] alucontrolE;
@@ -28,6 +33,14 @@ module mips(
 	wire stallW,flushW;
 	wire write_hiloW;
 	wire jwriteD;
+
+	wire [31:0] WB_pc;
+	wire WB_wen;
+	wire [4:0] WB_wnum;// 多少regfile
+	wire [31:0] WB_data;
+
+	wire [39:0] ascii;
+	instdec instdec(instrF,ascii);
 
 	controller c(
 		clk,rst,
@@ -50,6 +63,7 @@ module mips(
 		flushM,stallM,
 		memtoregM,memwriteM,
 		regwriteM,write_hiloM,
+		memenM,
 		//write back stage
 		flushW,stallW,
 		memtoregW,regwriteW,write_hiloW
@@ -68,6 +82,7 @@ module mips(
 		equalD,
 		opD,functD,
 		instrD,
+		stallD,
 		//execute stage
 		memtoregE,
 		alusrcE,regdstE,
@@ -86,6 +101,9 @@ module mips(
 		//writeback stage
 		memtoregW,
 		regwriteW,
+		pcW,
+		resultW,
+		writeregW,
 		// HILO
 		write_hiloW,
 		stallW,flushW

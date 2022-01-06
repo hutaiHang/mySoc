@@ -14,6 +14,7 @@ module datapath(
 		output wire equalD,
 		output wire[5:0] opD,functD,
 		output wire[31:0] instrD,
+		output wire stallD,
 		//执行
 		input wire memtoregE,//回写数据来自alu/存储器
 		input wire alusrcE,regdstE,//写入的寄存器序号
@@ -35,6 +36,9 @@ module datapath(
 		//回写
 		input wire memtoregW,
 		input wire regwriteW,
+		output wire [31:0] pcW,
+		output wire [31:0] resultW,
+		output wire [4:0] writeregW,
 		// HILO
 		input wire write_hiloW,
 		output wire stallW,
@@ -50,7 +54,7 @@ module datapath(
 	wire [31:0] pcplus4D;
 	wire forwardaD,forwardbD;
 	wire [4:0] rsD,rtD,rdD;
-	wire flushD,stallD; 
+	wire flushD; 
 	wire [31:0] signimmD,signimmshD;
 	wire [31:0] unsignimmD;//无符号立即数拓展
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
@@ -58,6 +62,8 @@ module datapath(
 	wire [63:0] hilo_inD;
 	wire [31:0] pcjumpD;
 	wire [31:0] pcplus8D;
+	wire [31:0] pcD;
+
 	//执行
 	wire [1:0] forwardaE,forwardbE;
 	wire [4:0] rsE,rtE,rdE;
@@ -83,6 +89,7 @@ module datapath(
 	wire [31:0] pcplus8E;
 	wire jrE;
 	wire jwriteE;
+	wire [31:0] pcE;
 
 	//访存
 	wire [4:0] writeregM;
@@ -101,10 +108,10 @@ module datapath(
 	wire [31:0] pcplus8M;
 	wire jrM;
 	wire jwriteM;
+	wire [31:0] pcM;
 
 	//回写
-	wire [4:0] writeregW;
-	wire [31:0] aluoutW,resultW;
+	wire [31:0] aluoutW;
 	wire [31:0] readdataW;
 	wire [63:0] hilo_inW;
 	wire [63:0] hilo_regW;
@@ -112,6 +119,7 @@ module datapath(
 	wire forward_hilo_E;
 	wire linkW;
 	wire [31:0] pcplus8W;
+
 	//冒险模块
 	hazard h(
 		//取指
@@ -168,6 +176,8 @@ module datapath(
 	flopenrc #(32) r2D(clk,rst,~stallD,flushD,instrF,instrD);
 
 	flopenrc #(32) r3D(clk,rst,~stallD,flushD,pcplus8F,pcplus8D);//pc+8
+	flopenrc #(32) r4D_pc(clk,rst,~stallD,flushD,pcF,pcD);// pc
+
 	signext se(instrD[15:0],signimmD,unsignimmD);
 	sl2 immsh(signimmD,signimmshD);//移位，乘4
 	adder pcadd3(pcplus4D,signimmshD,pcbranchD);//pc+4+立即数
@@ -208,6 +218,8 @@ module datapath(
 	flopenrc #(1) r15E(clk,rst,~stallE,flushE,jrD,jrE);//
 
 	flopenrc #(1) r16E_jwrite(clk,rst,~stallE,flushE,jwriteD,jwriteE);// jwrite
+	flopenrc #(32) r17E_pc(clk,rst,~stallE,flushE,pcD,pcE); // pc
+
 	//TODO 画数据通路图---
 	mux2 #(32) choice_imm_is_signed(unsignimmE,signimmE,sign_extdE,final_imm);
 	//----
@@ -262,6 +274,7 @@ module datapath(
 	flopenrc #(32) r14M(clk,rst,~stallM,flushM,pcjrE,pcjrM);//
 	flopenrc #(1) r15M(clk,rst,~stallM,flushM,jrE,jrM);//
 	flopenrc #(1) r16M_zero_true(clk,rst,~stallM,flushM,zero_trueE,zero_trueM);//zero_true
+	flopenrc #(32) r17M_pc(clk,rst,~stallM,flushM,pcE,pcM); // pc
 
 	wire [31:0] pcjump_trueM;
 	assign pcjump_trueM = jrM ? pcjrM:pcjumpM;
@@ -313,6 +326,7 @@ module datapath(
 
 	flopenrc #(1) r5W_link(clk, rst, ~stallW, flushW, linkM, linkW);// linkW
 	flopenrc #(32) r6W(clk,rst,~stallW,flushW,pcplus8M,pcplus8W);//
+	flopenrc #(32) r7W(clk,rst,~stallW,flushW,pcM,pcW); // pc
 	reg [31:0] reg_readdataW;
 
 	//取字节

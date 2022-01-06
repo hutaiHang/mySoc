@@ -136,9 +136,9 @@ module alu(
 			`EXE_SLL_OP: y<=(b<<offset);//SLL
 			`EXE_SRL_OP: y<=(b>>offset);//SRL
 			`EXE_SRA_OP: y<=$unsigned(( ($signed(b)) >>> offset));//SRA {offset{b[31]}},b[31:offset]}
-			`EXE_SLLV_OP: y<=(b<<a);//SLLV
-			`EXE_SRLV_OP: y<=(b>>a);//SRLV
-			`EXE_SRAV_OP: y<=$unsigned(( ($signed(b)) >>> a));//SRAV
+			`EXE_SLLV_OP: y<=(b<<a[4:0]);//SLLV
+			`EXE_SRLV_OP: y<=(b>>a[4:0]);//SRLV
+			`EXE_SRAV_OP: y<=$unsigned(( ($signed(b)) >>> a[4:0]));//SRAV
 			// --------HILO指令-------
 			`EXE_MTHI_OP: hi_output <= a;
 			`EXE_MTLO_OP: lo_output <= a;
