@@ -13,7 +13,8 @@ module mips(
 	output wire [31:0] pcW,
 	output wire regwriteW,
 	output wire [31:0] resultW,
-	output wire [4:0] writeregW
+	output wire [4:0] writeregW,
+	input wire [5:0] ext_int
     );
 	
 	wire [5:0] opD,functD;
@@ -106,7 +107,8 @@ module mips(
 		writeregW,
 		// HILO
 		write_hiloW,
-		stallW,flushW
+		stallW,flushW,
+		ext_int
 	    );
 	
 endmodule

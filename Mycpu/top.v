@@ -24,7 +24,6 @@ module top(
     output [5:0] ext_int
     );
     
-    assign ext_int = 6'b000000;
 
     assign inst_sram_en    = 1'b1;
     assign inst_sram_wen   = 4'b0;
@@ -77,7 +76,8 @@ module top(
         .pcW(pcW),
         .regwriteW(regwriteW),
         .resultW(resultW),
-        .writeregW(writeregW)
+        .writeregW(writeregW),
+        .ext_int(ext_int)
         );
 	
 endmodule

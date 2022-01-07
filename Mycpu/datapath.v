@@ -1,318 +1,370 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2017/11/02 15:12:22
-// Design Name: 
-// Module Name: datapath
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-
+`include "defines.vh"
 module datapath(
-	input wire clk,rst,
-	//fetch stage
-	output wire[31:0] pcF,
-	input wire[31:0] instrF,
-	//decode stage
-	output wire[5:0] opD,opE,opM,functD,
-	output wire[4:0] rsD,rtD,
-	//execute stage
-	input wire balE,jrE,jalE,
-	input wire memtoregE,
-	input wire alusrcE,regdstE,
-	input wire regwriteE,
-	input wire[7:0] alucontrolE,
-	output wire flushE,stallE,
-	//mem stage
-	input wire balM,jrM,jalM,
-	input wire branchM,jumpM,
-	input wire memtoregM,
-	input wire regwriteM,
-	output wire[31:0] aluoutM,writedataM,
-	input wire[31:0] readdataM,
-	output wire flushM,stallM,
-	//writeback stage
-	output wire [31:0] pcW,
-	output wire [31:0] resultW,
-	output wire [4:0] writeregW,
-	input wire memtoregW,
-	input wire regwriteW,
-	output wire flushW,stallW,
-	output wire[3:0] data_sram_wenM,
-	input wire hilowriteM,
+		input wire clk,rst,
+		//取指
+		output wire[31:0] pcF,//地址
+		input wire[31:0] instrF,//指令
+		//译码
+		input wire pcsrcD,branchD,
+		input wire jumpD,
+		input wire linkD,
+		input wire jrD,
+		input wire jwriteD,
+		output wire equalD,
+		output wire[5:0] opD,functD,
+		output wire[31:0] instrD,
+		output wire stallD,
+		//执行
+		input wire memtoregE,//回写数据来自alu/存储器
+		input wire alusrcE,regdstE,//写入的寄存器序号
+		input wire regwriteE,//是否回写
+		input wire[7:0] alucontrolE,//ALU控制信号
+		input wire sign_extdE,//无符号立即数拓展
+		output wire flushE,//流水线刷新信号
+		output wire stallE,
+		//访存
+		input wire memtoregM,
+		input wire regwriteM,
+		output wire[31:0] aluoutM_addr,
+		output reg [31:0] write_data_out,
+		input wire [31:0] readdataM,
+		input wire write_hiloM,
+		output wire stallM,
+		output wire flushM,
+		output reg[3:0] mem_wenM,
+		//回写
+		input wire memtoregW,
+		input wire regwriteW,
+		output wire [31:0] pcW,
+		output wire [31:0] resultW,
+		output wire [4:0] writeregW,
+		// HILO
+		input wire write_hiloW,
+		output wire stallW,
+		output wire flushW,
 
-	input wire invalidD,
-	input wire cp0writeM,
-	input wire [5:0]ext_int,
-	input wire is_in_delayslotF,
-	output wire except_logicM
+		// 新加指令
+		input wire [5:0] ext_int
     );
 	
-	//fetch stage
-	wire stallF;
+	//取指
+	wire stallF,flushF;
 	//FD
-	wire [31:0] pcnextFD,pcnextbrFD,pcplus4F,pcbranchD,pcbranchE,pcbranchM;
-	//decode stage
-	wire [31:0] pcD,pcplus4D,instrD;
+	wire [31:0] pcnextFD,pcnextbrFD,pcplus4F,pcbranchD;
+	wire [31:0] pcplus8F;
+	//译码
+	wire [31:0] pcplus4D;
 	wire forwardaD,forwardbD;
-	wire [4:0] rdD;
-	wire flushD,stallD; 
+	wire [4:0] rsD,rtD,rdD;
+	wire flushD; 
 	wire [31:0] signimmD,signimmshD;
+	wire [31:0] unsignimmD;//无符号立即数拓展
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
-	//execute stage
-	wire stall_divE;
-	wire [63:0]aluout_64E;
-	wire [31:0] pcE,pcplus4E,pcplus8E,instrE;
+	wire [4:0] offsetD;//偏移
+	wire [63:0] hilo_inD;
+	wire [31:0] pcjumpD;
+	wire [31:0] pcplus8D;
+	wire [31:0] pcD;
+
+	//执行
 	wire [1:0] forwardaE,forwardbE;
 	wire [4:0] rsE,rtE,rdE;
 	wire [4:0] writeregE;
 	wire [31:0] signimmE;
 	wire [31:0] srcaE,srca2E,srcbE,srcb2E,srcb3E;
-	wire [31:0] aluoutFalseE,aluoutE;
-	//mem stage
-	wire [4:0] rtM,rdM;
-	wire pcsrcM;
-	wire [31:0] pcM,pcplus4M,instrM;
+	wire [31:0] aluoutE;
+	wire [31:0] unsignimmE;//无符号立即数拓展
+	wire [31:0] final_imm;//最终选择的立即数
+	wire [4:0] offsetE;//偏移
+	wire [63:0] hilo_inE;
+	wire [63:0] alu_hilo_src;
+	wire div_stallE;
+	// wire stallE;
+	wire branchE;
+	wire zeroE;
+	wire overflowE;
+	wire [31:0] pcplus4E;
+	wire [31:0] pcbranchE;
+	wire jumpE;
+	wire [31:0] pcjumpE;
+	wire linkE;
+	wire [31:0] pcplus8E;
+	wire jrE;
+	wire jwriteE;
+	wire [31:0] pcE;
+
+	//访存
 	wire [4:0] writeregM;
-	wire [63:0] aluout_64M;
-	wire [31:0] srca2M,srcb2M;
-	//writeback stage
-	wire [31:0] instrW;
-	wire [31:0] aluoutW,readdataW;
-	wire [31:0] readdataM_real;
-	wire [31:0]writedataM_temp;
-	wire syscallD,breakD,eretD;
-	wire pc_exceptF,pc_exceptD;
-	wire [7:0] exceptE,exceptM;
-	wire overflow;
-	wire adelM,adesM;
-	
-	wire is_in_delayslotD,is_in_delayslotE,is_in_delayslotM;
+	wire [63:0] hilo_inM;
+	wire [7:0] alucontrolM;
+	wire [31:0] aluoutM;
+	wire branchM;
+	wire zeroM;
+	wire overflowM;
+	wire pcsrcM;
+	wire [31:0] pcbranchM;
+	wire jumpM;
+	wire [31:0] pcjumpM;
+	wire [31:0] writedataM;
+	wire linkM;
+	wire [31:0] pcplus8M;
+	wire jrM;
+	wire jwriteM;
+	wire [31:0] pcM;
 
+	//回写
+	wire [31:0] aluoutW;
+	wire [31:0] readdataW;
+	wire [63:0] hilo_inW;
+	wire [63:0] hilo_regW;
+	wire [7:0] alucontrolW;
+	wire forward_hilo_E;
+	wire linkW;
+	wire [31:0] pcplus8W;
 
-	// hilo
-	wire [31:0]hi,lo;
-
-	wire [31:0]newpcM;
-	wire [31:0]bad_addr;
-	wire [31:0]cp0_data_oE,count_o,compare_o,status_o,cause_o,epc_o,config_o,prid_o;
-	wire [31:0]badvaddr;
-	wire timer_int_o;
-	wire [31:0]excepttypeM;
-	assign except_logicM = (|excepttypeM);
-
-	//hazard detection
+	//冒险模块
 	hazard h(
-		//fetch stage
+		//取指
 		stallF,
-		//decode stage
+		flushF,
+		//译码
 		rsD,rtD,
-		stallD,
-		flushD,
-		//execute stage
+		branchD,
+		forwardaD,forwardbD,
+		stallD,flushD,
+		//执行
 		rsE,rtE,
 		writeregE,
 		regwriteE,
 		memtoregE,
-		stall_divE,
+		div_stallE,
 		forwardaE,forwardbE,
-		stallE,
+		forward_hilo_E,
 		flushE,
-		//mem stage
+		stallE,
+		//访存
 		writeregM,
 		regwriteM,
 		memtoregM,
+		write_hiloM,
+		jumpM,
+		branchM,
+		pcsrcM,
 		stallM,
 		flushM,
-		pcsrcM,jumpM,jrM,jalM,
-		//write back stage
+		//回写
 		writeregW,
 		regwriteW,
 		stallW,
-		flushW,
-		// 异常
-		except_logicM,
-		excepttypeM,
-		epc_o,
-		newpcM
+		flushW
 		);
 
-	//next PC logic (operates in fetch an decode)
-	pc_mux pc_mux(
-		jumpM,
-		jalM,
-		jrM,
-		pcsrcM,
-   		excepttypeM,
-		{pcplus4M[31:28],instrM[25:0],2'b00},   //jump鍚庣殑
-		srca2M, //JR		
-		pcplus4F, //pc+4
-		pcbranchM, //pc璺宠浆鍚庣殑
-    	newpcM,
-		pcnextFD
-	);
-
-	//regfile (operates in decode and writeback)
+	//下一PC值确定 先确定+4 or branch 再确定是否jump
+	mux2 #(32) pcbrmux(pcplus4F,pcbranchM,pcsrcM,pcnextbrFD);
+	mux2 #(32) pcmux(pcnextbrFD,
+		pcjump_trueM,
+		jumpM,pcnextFD);
+	assign pcjumpD = {pcplus4D[31:28], instrD[25:0], 2'b00};
+	//寄存器堆，负责读入或回写数据
 	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
 
-	//fetch stage logic
-	pc #(32) pcreg(clk,rst,~stallF,pcnextFD,pcF);
-	adder pcadd1(pcF,32'b100,pcplus4F);
-	//decode stage
-	flopenr #(32) r1D(clk,rst,~stallD,pcplus4F,pcplus4D);
-	flopenrc #(32) r2D(clk,rst,~stallD,flushD,instrF,instrD);
-	flopenrc #(32) r3D(clk,rst,~stallD ,flushD,pcF,pcD);	
-	flopenrc #(1) r4D(clk,rst,~stallD,flushD,pc_exceptF,pc_exceptD);
-	flopenrc #(1) r5D(clk,rst,~stallD,flushD,is_in_delayslotF,is_in_delayslotD);
-	signext se(instrD[15:0],signimmD,instrD[29:28]);
-	sl2 immsh(signimmD,signimmshD);
-	adder pcadd2(pcplus4D,signimmshD,pcbranchD);
+	//取指
+	pc #(32) pcreg(clk,rst,~stallF,pcnextFD,pcF);//TODO PC触发器修改
+	adder pcadd1(pcF,32'b100,pcplus4F);///pc+4
+	adder pcadd2(pcF,32'b1000,pcplus8F); 	
 
+	//译码 阻塞信号取反作为是能信号，控制pc不变以实现流水线暂停
+	flopenrc #(32) r1D(clk,rst,~stallD,flushD,pcplus4F,pcplus4D);
+	flopenrc #(32) r2D(clk,rst,~stallD,flushD,instrF,instrD);
+
+	flopenrc #(32) r3D(clk,rst,~stallD,flushD,pcplus8F,pcplus8D);//pc+8
+	flopenrc #(32) r4D_pc(clk,rst,~stallD,flushD,pcF,pcD);// pc
+
+	signext se(instrD[15:0],signimmD,unsignimmD);
+	sl2 immsh(signimmD,signimmshD);//移位，乘4
+	adder pcadd3(pcplus4D,signimmshD,pcbranchD);//pc+4+立即数
+
+
+	// mux2 #(32) forwardamux(srcaD,aluoutM,forwardaD,srca2D);
+	// mux2 #(32) forwardbmux(srcbD,aluoutM,forwardbD,srcb2D);
+	// eqcmp comp(srca2D,srcb2D,equalD);
+
+	// HILO 选择新的值
+	mux2 #(64) forword_hilo_mux(hilo_regW,hilo_inM,forward_hilo_E,alu_hilo_src);
 
 	assign opD = instrD[31:26];
 	assign functD = instrD[5:0];
 	assign rsD = instrD[25:21];
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
+	assign offsetD = instrD[10:6];
 
-	//execute stage
+	//执行 每个信号采用D触发器进行传递 刷新信号作为clear信号
+	flopenrc #(32) r1E(clk,rst,~stallE,flushE,srcaD,srcaE);
+	flopenrc #(32) r2E(clk,rst,~stallE,flushE,srcbD,srcbE);
+	flopenrc #(32) r3E(clk,rst,~stallE,flushE,signimmD,signimmE);
+	flopenrc #(5)  r4E(clk,rst,~stallE,flushE,rsD,rsE);
+	flopenrc #(5)  r5E(clk,rst,~stallE,flushE,rtD,rtE);
+	flopenrc #(5)  r6E(clk,rst,~stallE,flushE,rdD,rdE);
+	flopenrc #(32) r7E(clk,rst,~stallE,flushE,unsignimmD,unsignimmE);//无符号立即数拓展
+	flopenrc #(5)  r8E(clk,rst,~stallE,flushE,offsetD,offsetE);//偏移量
+	flopenrc #(1)  r9E_branch(clk, rst, ~stallE, flushE, branchD, branchE);// branch
+	flopenrc #(32) r10E_pcbranch(clk, rst, ~stallE, flushE, pcbranchD, pcbranchE); // pcbranch
+	flopenrc #(1)  r11E_jump(clk, rst, ~stallE, flushE, jumpD, jumpE);// jump
+	flopenrc #(32) r12E_pcjump(clk, rst, ~stallE, flushE, pcjumpD, pcjumpE);// pcjump
+	flopenrc #(32) r13E_pcplus4(clk, rst, ~stallE, flushE, pcplus4D, pcplus4E);// pcplus4
 
-	floprc #(32) r1E(clk,rst,flushE,srcaD,srcaE);
-	floprc #(32) r2E(clk,rst,flushE,srcbD,srcbE);
-	floprc #(32) r3E(clk,rst,flushE,signimmD,signimmE);
-	floprc #(5) r4E(clk,rst,flushE,rsD,rsE);
-	floprc #(5) r5E(clk,rst,flushE,rtD,rtE);
-	floprc #(5) r6E(clk,rst,flushE,rdD,rdE);
-	flopenrc #(32) r7E(clk,rst,~stallE,flushE,instrD,instrE);
-	flopenr #(32) r9E(clk,rst,~stallE,pcplus4D,pcplus4E);
-	floprc #(6) r8E(clk,rst,flushE,opD,opE);
-	flopenrc #(32) r10E(clk,rst,~stallE,flushE,pcbranchD,pcbranchE);
-	flopenrc #(32) r11E(clk,rst,~stallE,flushE,pcD,pcE);	
-	flopenrc #(8) r12E(clk,rst,~stallE,flushE,{pc_exceptD,syscallD,breakD,eretD,invalidD,3'b0},exceptE);
-	flopenrc #(1) r13E(clk,rst,~stallE,flushE,is_in_delayslotD,is_in_delayslotE);
+	flopenrc #(1) r13E_link(clk, rst, ~stallE, flushE, linkD, linkE);// link4
+	flopenrc #(32) r14E(clk,rst,~stallE,flushE,pcplus8D,pcplus8E);//
 
+	flopenrc #(1) r15E(clk,rst,~stallE,flushE,jrD,jrE);//
+
+	flopenrc #(1) r16E_jwrite(clk,rst,~stallE,flushE,jwriteD,jwriteE);// jwrite
+	flopenrc #(32) r17E_pc(clk,rst,~stallE,flushE,pcD,pcE); // pc
+
+	//TODO 画数据通路图---
+	mux2 #(32) choice_imm_is_signed(unsignimmE,signimmE,sign_extdE,final_imm);
+	//----
 	mux3 #(32) forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 #(32) forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
-	mux2 #(32) srcbmux(srcb2E,signimmE,alusrcE,srcb3E);
-	alu alu(
-		.clk(clk),
-		.rst(rst),
-		.a(srca2E),
-		.b(srcb3E),
-		.sa(instrE[10:6]),
-		.op(alucontrolE),
-		.y(aluoutFalseE),
-		.aluout_64(aluout_64E),
-		.stall_div(stall_divE)
-		,.hi(hi),.lo(lo),
-		.overflow(overflow),
-		.cp0_data_o(cp0_data_oE));
-	mux3 #(5) mux3_regDst(
-    .d0(rtE),
-    .d1(rdE),
-    .d2(5'b11111),
-    .sel({balE|jalE,regdstE}),
-    .y(writeregE)
-    );
-	assign pcplus8E = pcplus4E + 32'b00000000000000000000000000000100; 
-// 鑻ユ湁寤惰繜妲斤紝鍒檒ink鍒皃c+8
-	mux2 #(32) alu_pc8(
-    .d0(aluoutFalseE),
-    .d1(pcplus8E),
-    .sel((balE | jalE) | jrE),
-    .y(aluoutE)
-	);
+	mux2 #(32) srcbmux(srcb2E,final_imm,alusrcE,srcb3E);
+	wire [31:0] aluoutEsrc;
+	alu alu(clk,
+			rst,
+			srca2E,
+			srcb3E,
+			offsetE,
+			alucontrolE,
+			alu_hilo_src[63:32],
+			alu_hilo_src[31:0],
+			hilo_inE[63:32],
+			hilo_inE[31:0],
+			div_stallE,
+			aluoutEsrc,
+			overflowE,
+			zeroE);
+	mux2 #(32) resmux2(aluoutEsrc,pcplus8E, jwriteE, aluoutE);
 
-	//mem stage
-	flopr #(32) r1M(clk,rst,srcb2E,writedataM_temp);
-	flopr #(32) r2M(clk,rst,aluoutE,aluoutM);
-	flopr #(5) r3M(clk,rst,writeregE,writeregM);
-	flopenrc #(32) r4M(clk,rst,~stallM,flushM,instrE,instrM);
-	flopr #(6) r5M(clk,rst,opE,opM);
-	flopenrc #(64) r6M(clk,rst,~stallM,flushM,aluout_64E,aluout_64M);
-	flopenrc #(32) r7M(clk,rst,~stallM,flushM,pcplus4E,pcplus4M);
-	flopenrc #(64) r8M(clk,rst,~stallM,flushM,{srca2E,srcb2E},{srca2M,srcb2M});
-	flopenrc #(5) r9M(clk,rst,~stallM,flushM,rtE,rtM);
-	flopenrc #(32) r10M(clk,rst,~stallM,flushM,pcE,pcM);	
-	flopenrc #(32) r11M(clk,rst,~stallM,flushM,pcbranchE,pcbranchM);
-	flopenrc #(8) r12M(clk,rst,~stallM,flushM,{exceptE[7:3],overflow,exceptE[1:0]},exceptM);
-	flopenrc #(5) r13M(clk,rst,~stallM,flushM,rdE,rdM);
-	flopenrc #(1) r14M(clk,rst,~stallM,flushM,is_in_delayslotE,is_in_delayslotM);
-	eqcmp comp(srca2M,srcb2M,opM,rtM,equalM);
-    assign pcsrcM = equalM & (branchM | balM) ;
+	wire zero_trueE;
+	assign zero_trueE = aluoutEsrc;
 
-	//writeback stage
-	flopr #(32) r1W(clk,rst,aluoutM,aluoutW);
-	flopr #(32) r2W(clk,rst,readdataM_real,readdataW);
-	flopr #(5) r3W(clk,rst,writeregM,writeregW);
-	flopenrc #(32) r4W(clk,rst,~stallW,flushW,instrM,instrW);
-	flopenrc #(32) r5W(clk,rst,~stallW,flushW,pcM,pcW);	
-	mux2 #(32) resmux(aluoutW,readdataW,memtoregW,resultW);
+	wire [4:0] writeregEsrc1;
+	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregEsrc1);
+	mux2 #(5) wr2mux(writeregEsrc1,5'd31,linkE,writeregE);//选择31或其他
+
+	wire zero_trueM;
+
+	wire [31:0]  pcjrE;
+	assign pcjrE = srca2E;
+
+	wire [31:0] pcjrM;
+	//访存
+	flopenrc #(32) r1M		(clk,rst,~stallM,flushM,srcb2E,writedataM);
+	flopenrc #(32) r2M		(clk,rst,~stallM,flushM,aluoutE,aluoutM);
+	flopenrc #(5) r3M		(clk,rst,~stallM,flushM,writeregE,writeregM);
+	flopenrc #(64) r4M_hilo	(clk,rst,~stallM,flushM,hilo_inE,hilo_inM);
+	flopenrc #(8) r5M_aluop	(clk,rst,~stallM,flushM,alucontrolE,alucontrolM);
+	flopenrc #(1) r6M_branch(clk,rst,~stallM,flushM,branchE,branchM);// branch
+	flopenrc #(1) r7M_overflow(clk,rst,~stallM,flushM,overflowE,overflowM);// overflow
+	flopenrc #(1) r8M_zero(clk,rst,~stallM,flushM,zeroE,zeroM);// zero
+	flopenrc #(32) r9M_pcbranch(clk, rst, ~stallM, flushM, pcbranchE, pcbranchM);// pcbranch
+	flopenrc #(1) r10M_jump(clk, rst, ~stallM, flushM, jumpE, jumpM);// jump
+	flopenrc #(32) r11M_pcjump(clk, rst, ~stallM, flushM, pcjumpE, pcjumpM);// pcjump
+	flopenrc #(1) r12M_link(clk, rst, ~stallM, flushM, linkE, linkM);// linkM
+	flopenrc #(32) r13M(clk,rst,~stallM,flushM,pcplus8E,pcplus8M);//
 	
-	lsmem lsmen(opM,aluoutM,readdataM_real,readdataM,writedataM,writedataM_temp,data_sram_wenM,adelM,adesM,bad_addr,pcM);
-	hilo_reg hilo_reg(.clk(clk),.rst(rst),.we(hilowriteM& ~(|excepttypeM)&~stallM),.hilo_i(aluout_64M),.hi(hi),.lo(lo));
-	assign syscallD = (instrD[31:26] == 6'b000000 && instrD[5:0] == 6'b001100);
-    assign breakD = (instrD[31:26] == 6'b000000 && instrD[5:0] == 6'b001101);
-    assign eretD = (instrD == 32'b01000010000000000000000000011000);
-    assign pc_exceptF = (pcF[1:0] == 2'b00) ? 1'b0 : 1'b1;
+	flopenrc #(32) r14M(clk,rst,~stallM,flushM,pcjrE,pcjrM);//
+	flopenrc #(1) r15M(clk,rst,~stallM,flushM,jrE,jrM);//
+	flopenrc #(1) r16M_zero_true(clk,rst,~stallM,flushM,zero_trueE,zero_trueM);//zero_true
+	flopenrc #(32) r17M_pc(clk,rst,~stallM,flushM,pcE,pcM); // pc
 
-	wire[39:0] asciiF;
-	wire[39:0] asciiD;
-	wire[39:0] asciiE;
-	wire[39:0] asciiM;
-	wire[39:0] asciiW;
-	instdec instF(.instr(instrF),.ascii(asciiF));
-	instdec instD(.instr(instrD),.ascii(asciiD));
-	instdec instE(.instr(instrE),.ascii(asciiE));
-	instdec instM(.instr(instrM),.ascii(asciiM));
-	instdec instW(.instr(instrW),.ascii(asciiW));
+	wire [31:0] pcjump_trueM;
+	assign pcjump_trueM = jrM ? pcjrM:pcjumpM;
+
+	assign pcsrcM = branchM & zero_trueM;
+
+	//sw各种指令选择
+	always @(*) begin
+		mem_wenM <= 4'b0000;
+		case (alucontrolM)
+			`EXE_SB_OP: begin 
+				mem_wenM <= 
+							(aluoutM[1:0]==2'b00) ? 4'b0001 : 
+							(aluoutM[1:0]==2'b01) ? 4'b0010 : 
+							(aluoutM[1:0]==2'b10) ? 4'b0100 : 
+							(aluoutM[1:0]==2'b11) ? 4'b1000 : 
+							4'b0001;
+				write_data_out <= {writedataM[7:0], writedataM[7:0], writedataM[7:0], writedataM[7:0]};
+			end
+			`EXE_SH_OP: begin
+				mem_wenM <= 
+							(aluoutM[1:0]==2'b00) ? 4'b0011 : 
+							(aluoutM[1:0]==2'b10) ? 4'b1100 : 
+							4'b0011;
+				write_data_out <= {writedataM[15:0], writedataM[15:0]};
+			end
+
+			`EXE_SW_OP: begin
+				mem_wenM <= 4'b1111;
+				write_data_out <= writedataM;
+			end
+			default: begin
+				mem_wenM <= 4'b0000;
+				write_data_out <= writedataM;
+			end
+		endcase
+	end
+
+	// wire [31:0] aluoutM_addr;
+	// assign aluoutM_addr={aluoutM[31:2],2'b00};//取字地址
+	// assign aluoutM_addr = aluoutM << 2;//取字地址
+	assign aluoutM_addr = aluoutM;//取字地址
+
+	//回写
+	flopenrc #(32) r1W(clk,rst,~stallW,flushW,aluoutM,aluoutW);
+	flopenrc #(32) r2W(clk,rst,~stallW,flushW,readdataM,readdataW);
+	flopenrc #(5) r3W(clk,rst,~stallW,flushW,writeregM,writeregW);
+	flopenrc #(8) r4W_aluop(clk,rst,~stallW,flushW,alucontrolM,alucontrolW);
+
+	flopenrc #(1) r5W_link(clk, rst, ~stallW, flushW, linkM, linkW);// linkW
+	flopenrc #(32) r6W(clk,rst,~stallW,flushW,pcplus8M,pcplus8W);//
+	flopenrc #(32) r7W(clk,rst,~stallW,flushW,pcM,pcW); // pc
+	reg [31:0] reg_readdataW;
+
+	//取字节
+	wire [31:0]readdata_signed_byte,readdata_unsigned_byte;
+	// assign readdata_true={{24{readdataW[7]}},readdataW[7:0]};
+	assign readdata_signed_byte = aluoutW[1:0]==2'b11 ? {{24{readdataW[31]}},readdataW[31:24]} :
+							aluoutW[1:0]==2'b10 ? {{24{readdataW[23]}},readdataW[23:16]} :
+							aluoutW[1:0]==2'b01 ? {{24{readdataW[15]}},readdataW[15:8]} :
+							aluoutW[1:0]==2'b00 ? {{24{readdataW[7]}},readdataW[7:0]} : 32'b0;
+
+	assign readdata_unsigned_byte = aluoutW[1:0]==2'b11 ? {{24{1'b0}},readdataW[31:24]} :
+							aluoutW[1:0]==2'b10 ? {{24{1'b0}},readdataW[23:16]} :
+							aluoutW[1:0]==2'b01 ? {{24{1'b0}},readdataW[15:8]} :
+							aluoutW[1:0]==2'b00 ? {{24{1'b0}},readdataW[7:0]} : 32'b0;
 	
-	exception exp(
-    rst,
-    exceptM,
-    adelM,
-    adesM,
-    status_o,
-    cause_o,
-    excepttypeM
-    );
-    
-    cp0_reg CP0(
-    .clk(clk),
-	.rst(rst),
-    .we_i(cp0writeM & ~stallM),
-	.waddr_i(rdM),  // M???д??CP0
-	.raddr_i(rdE),  // E??ζ??CP0?????????????????????????
-	.data_i(srcb2M),
+	//取半字
+	wire [31:0]readdata_signed_half,readdata_unsigned_half;
+	// assign readdata_true={{24{readdataW[7]}},readdataW[7:0]};
+	assign readdata_signed_half = aluoutW[1:0]==2'b10 ? {{16{readdataW[31]}},readdataW[31:16]} :
+							aluoutW[1:0]==2'b00 ?  {{16{readdataW[15]}},readdataW[15:0]} : 32'b0;
 
-	.int_i(ext_int),
+	assign readdata_unsigned_half =  aluoutW[1:0]==2'b10 ? {{16{1'b0}},readdataW[31:16]} :
+							aluoutW[1:0]==2'b00 ? {{16{1'b0}},readdataW[15:0]} : 32'b0;
 
-	.excepttype_i(excepttypeM),
-	.current_inst_addr_i(pcM),
-	.is_in_delayslot_i(is_in_delayslotM),
-	.bad_addr_i(bad_addr),
+	always @(*) begin
+		case (alucontrolW)
+			`EXE_LB_OP:reg_readdataW <= readdata_signed_byte;
+			`EXE_LBU_OP:reg_readdataW<= readdata_unsigned_byte;
+			`EXE_LH_OP: reg_readdataW <= readdata_signed_half;
+			`EXE_LHU_OP: reg_readdataW <= readdata_unsigned_half;
+			default: reg_readdataW <= readdataW;
+		endcase	
+	end
 
-	.data_o(cp0_data_oE),
-	.count_o(count_o),
-	.compare_o(compare_o),
-	.status_o(status_o),
-	.cause_o(cause_o),
-	.epc_o(epc_o),
-	.config_o(config_o),
-	.prid_o(prid_o),
-	.badvaddr_o(badvaddr),
-	.timer_int_o(timer_int_o)
-    );
+	mux2 #(32) resmux(aluoutW,reg_readdataW,memtoregW,resultW);
+	flopenrc #(64) r4W_hilo(clk,rst,~stallW,flushW,hilo_inM,hilo_inW);
+	hilo_reg my_hilo_regW(clk,rst,write_hiloW,hilo_inW[63:32],hilo_inW[31:0],hilo_regW[63:32],hilo_regW[31:0]);
 endmodule
