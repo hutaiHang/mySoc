@@ -21,7 +21,7 @@ module top(
     output [3 :0] debug_wb_rf_wen  ,
     output [4 :0] debug_wb_rf_wnum ,
     output [31:0] debug_wb_rf_wdata,
-    output [5:0] ext_int
+    input [5:0] ext_int
     );
     
 
